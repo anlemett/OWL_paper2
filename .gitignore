@@ -1,0 +1,14 @@
+__pycache__/
+Plots/.ipynb_checkpoints/*
+Test/*
+*.csv
+*.xlsx
+*.sav
+*.iml
+*.xml
+*.png
+*.svg
+*.eps
+*.zip
+*.z7
+*.h5
