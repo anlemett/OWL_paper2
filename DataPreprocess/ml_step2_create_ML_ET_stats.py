@@ -106,6 +106,30 @@ def main():
     else:
         filename = "ML_features_3min.csv"
     
+    
+    # Remove features with zero std
+
+    features_to_remove = ["Saccades Duration Min", "Fixation Duration Min",
+                          "Left Blink Closing Amplitude Min",
+                          "Left Blink Opening Amplitude Min",
+                          "Left Blink Closing Speed Min",
+                          "Left Blink Opening Speed Min",
+                          "Right Blink Closing Amplitude Min",
+                          "Right Blink Opening Amplitude Min",
+                          "Right Blink Closing Speed Min",
+                          "Right Blink Opening Speed Min",
+                          "Left Blink Closing Amplitude Median",
+                          "Left Blink Opening Amplitude Median",
+                          "Left Blink Closing Speed Median",
+                          "Left Blink Opening Speed Median",
+                          "Right Blink Closing Amplitude Median",
+                          "Right Blink Opening Amplitude Median",
+                          "Right Blink Closing Speed Median",
+                          "Right Blink Opening Speed Median"
+                      ]
+
+    data_df = data_df.drop(features_to_remove, axis=1)
+    
     full_filename = os.path.join(ML_DIR, filename)
     data_df.to_csv(full_filename, sep =" ", header=True, index=False)
 

@@ -25,6 +25,11 @@ DATA_DIR = os.path.join(DATA_DIR, "Data")
 ML_DIR = os.path.join(DATA_DIR, "MLInput")
 FIG_DIR = os.path.join(".", "Figures")
 
+#test_ATCO = 1.0
+
+test_ATCO1 = 15.0
+test_ATCO2 = 16.0
+
 RANDOM_STATE = 0
 
 BINARY = True
@@ -138,10 +143,12 @@ def main():
     
     # Spit the data into train and test
     
-    test_ATCO = 1.0
+    #data_df_train = data_df[data_df['ATCO']!=test_ATCO]
+    #data_df_test = data_df[data_df['ATCO']==test_ATCO]
     
-    data_df_train = data_df[data_df['ATCO']!=test_ATCO]
-    data_df_test = data_df[data_df['ATCO']==test_ATCO]
+    data_df_train = data_df[(data_df['ATCO']!=test_ATCO1) & (data_df['ATCO']!=test_ATCO2)]
+    data_df_test = data_df[(data_df['ATCO']==test_ATCO1) | (data_df['ATCO']==test_ATCO2)]
+
 
     #data_split = ShuffleSplit(n_splits=1, test_size=.1, random_state=RANDOM_STATE)
     #data_split = KFold(n_splits=10, random_state=None, shuffle=False)
