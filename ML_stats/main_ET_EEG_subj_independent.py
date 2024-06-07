@@ -1,6 +1,5 @@
 import warnings
 warnings.filterwarnings('ignore')
-
 import time
 import os
 import numpy as np
@@ -14,7 +13,6 @@ from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassif
 from sklearn.svm import SVC
 
 from sklearn.model_selection import RandomizedSearchCV#, train_test_split, GridSearchCV
-#from sklearn.model_selection import ShuffleSplit
 from sklearn.model_selection import  KFold
 from scipy.stats import randint
 from sklearn import preprocessing
@@ -27,8 +25,9 @@ FIG_DIR = os.path.join(".", "Figures")
 
 #test_ATCO = 1.0
 
-test_ATCO1 = 15.0
-test_ATCO2 = 16.0
+test_ATCO1 = 7
+test_ATCO2 = 8
+test_ATCO3 = 9
 
 RANDOM_STATE = 0
 
@@ -146,9 +145,11 @@ def main():
     #data_df_train = data_df[data_df['ATCO']!=test_ATCO]
     #data_df_test = data_df[data_df['ATCO']==test_ATCO]
     
-    data_df_train = data_df[(data_df['ATCO']!=test_ATCO1) & (data_df['ATCO']!=test_ATCO2)]
-    data_df_test = data_df[(data_df['ATCO']==test_ATCO1) | (data_df['ATCO']==test_ATCO2)]
+    #data_df_train = data_df[(data_df['ATCO']!=test_ATCO1) & (data_df['ATCO']!=test_ATCO2)]
+    #data_df_test = data_df[(data_df['ATCO']==test_ATCO1) | (data_df['ATCO']==test_ATCO2)]
 
+    data_df_train = data_df[(data_df['ATCO']!=test_ATCO1) & (data_df['ATCO']!=test_ATCO2) & (data_df['ATCO']!=test_ATCO3)]
+    data_df_test = data_df[(data_df['ATCO']==test_ATCO1) | (data_df['ATCO']==test_ATCO2)| (data_df['ATCO']==test_ATCO3)]
 
     #data_split = ShuffleSplit(n_splits=1, test_size=.1, random_state=RANDOM_STATE)
     #data_split = KFold(n_splits=10, random_state=None, shuffle=False)
