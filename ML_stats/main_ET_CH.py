@@ -7,16 +7,15 @@ import numpy as np
 import pandas as pd
 #import sys
 
-from sklearn.model_selection import RandomizedSearchCV #, train_test_split
+from sklearn.model_selection import ShuffleSplit, RandomizedSearchCV
+from sklearn import preprocessing
 from scipy.stats import uniform, randint
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, f1_score
 
-from sklearn.model_selection import ShuffleSplit
-from sklearn import preprocessing
 
 DATA_DIR = os.path.join("..", "..")
 DATA_DIR = os.path.join(DATA_DIR, "Data")
@@ -72,25 +71,6 @@ def main():
     
     data_df = data_df.drop('ATCO', axis=1)
     
-    '''
-    noncorr_features = ['Saccades Number', 'Saccades Duration Mean', 'Saccades Duration Std',
-       'Saccades Duration Median', 'Saccades Duration Max',
-       'Fixation Duration Mean', 'Fixation Duration Median',
-       'Fixation Duration Max', 'Left Pupil Diameter Mean',
-       'Right Pupil Diameter Mean', 'Left Blink Closing Amplitude Mean',
-       'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
-       'Left Pupil Diameter Std', 'Right Pupil Diameter Std',
-       'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
-       'Left Pupil Diameter Min', 'Right Pupil Diameter Min',
-       'Head Heading Min', 'Head Pitch Min', 'Head Roll Min',
-       'Left Pupil Diameter Max', 'Right Pupil Diameter Max',
-       'Left Blink Closing Amplitude Max', 'Left Blink Closing Speed Max',
-       'Left Blink Opening Speed Max', 'Right Blink Closing Amplitude Max',
-       'Right Blink Closing Speed Max', 'Head Heading Max', 'Head Pitch Max',
-       'Head Roll Max', 'Head Heading Median']
-
-    data_df = data_df[noncorr_features]
-    '''
     
     features_np = data_df.to_numpy()
 
@@ -128,18 +108,6 @@ def main():
     weight_dict = weight_classes(scores)
         
     # Spit the data into train and test
-    '''
-    X_train, X_test, y_train, y_test = train_test_split(
-        TS_np, scores, test_size=0.1, random_state=RANDOM_STATE, shuffle=True
-        )
-    
-    X_train = np.array(X_train)
-    X_test = np.array(X_test)
-    
-    print(
-        f"Length of train  X : {len(X_train)}\nLength of test X : {len(X_test)}\nLength of train Y : {len(y_train)}\nLength of test Y : {len(y_test)}"
-        )
-    '''
 
     rs = ShuffleSplit(n_splits=1, test_size=.1, random_state=RANDOM_STATE)
 
@@ -189,13 +157,6 @@ def main():
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'C': 1.657, 'penalty': l2} Acc=0.69, MacroF1=0.55 time:1sec
-        #WL, binary: {'C': 0.019, 'penalty': l2} Acc=0.85, MacroF1=0.46    time:1sec
-
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'C': 3.779, 'penalty': l2} Acc=0.72, MacroF1=0.57 time:1sec
-        #WL, binary: {'C': 0.077, 'penalty': l2} Acc=0.85, MacroF1=0.65    time:1sec
         
     elif MODEL == "SVC":
 
@@ -224,13 +185,6 @@ def main():
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'C': 6.748, 'kernel': poly, 'gamma': scale, 'degree': 5} Acc=0.81, MacroF1=0.72 time:1sec
-        #WL, binary: {'C': 0.567, 'kernel': sigmoid, 'gamma': scale, 'degree': 2} Acc=0.9, MacroF1=0.47  time:1sec
-
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'C': 6.748, 'kernel': poly, 'gamma': scale, 'degree': 5} Acc=0.81, MacroF1=0.72 time:1sec
-        #WL, binary: {'C': 3.154, 'kernel': poly, 'gamma': scale, 'degree': 6} Acc=0.93, MacroF1=0.81    time:1sec
 
     elif  MODEL == "DT":
         clf = DecisionTreeClassifier(class_weight=weight_dict)
@@ -256,14 +210,6 @@ def main():
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 5} Acc=0.7, MacroF1=0.65   time:2sec
-        #WL, binary: {'max_depth': 37} Acc=0.91, MacroF1=0.73    time:1sec
-
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 33} Acc=0.69, MacroF1=0.64 time:9sec
-        #WL, binary: {'max_depth': 59} Acc=0.91, MacroF1=0.73    time:1sec
-
     
     elif  MODEL == "RF":
         
@@ -284,12 +230,7 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
-        '''
-        param_grid = {'n_estimators': np.arange(100, 150, dtype=int),
-             'max_depth': np.arange(1, 79, dtype=int),
-             }
-        search = GridSearchCV(clf, param_grid=param_grid, cv=CV)
-        '''
+
         # Fit the search object to the data
         search.fit(X_train, y_train)
 
@@ -298,13 +239,6 @@ def main():
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': , 'n_estimators': } Acc=0., MacroF1=0. time:sec
-        #WL, binary: {'max_depth': 45, 'n_estimators': 97} Acc=0.91, MacroF1=0.73   time:488sec
-        
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 5, 'n_estimators': 287} Acc=0.7, MacroF1=0.65 time:864sec
-        #WL, binary: {'max_depth': 45, 'n_estimators': 97} Acc=0.91, MacroF1=0.73   time:501sec
         
     elif  MODEL == "HGBC":
         clf = HistGradientBoostingClassifier(class_weight='balanced',
@@ -332,14 +266,6 @@ def main():
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
         
-        
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 11} Acc=0.82, MacroF1=0.7  time:216sec
-        #WL, binary: {'max_depth': 4} Acc=0.91, MacroF1=0.73     time:45sec
-
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 45} Acc=0.84, MacroF1=0.72 time:204sec
-        #WL, binary: {'max_depth': 4} Acc=0.91, MacroF1=0.73     time:40sec
     
     ############################## Predict ####################################
 
@@ -350,22 +276,10 @@ def main():
     ############################ Evaluate #####################################
     
     accuracy = accuracy_score(y_pred=y_pred, y_true=y_test)
-    
-    if BINARY:
-        precision = precision_score(y_pred=y_pred, y_true=y_test, average='binary')
-        recall = recall_score(y_pred=y_pred, y_true=y_test, average='binary')
-        f1 = f1_score(y_pred=y_pred, y_true=y_test, average='binary')
-    else:
-        recall = recall_score(y_pred=y_pred, y_true=y_test, average='micro')
-        precision = precision_score(y_pred=y_pred, y_true=y_test, average='micro')
-        f1 = f1_score(y_pred=y_pred, y_true=y_test, average='micro')
-        
+           
     f1_macro = f1_score(y_pred=y_pred, y_true=y_test, average='macro')
     
     print("Accuracy:", accuracy)
-    #print("Precision: ", precision)
-    #print("Recall: ", recall)
-    #print("F1-score:", f1)
     print("Macro F1-score:", f1_macro)
 
     

@@ -8,17 +8,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 #import sys
 
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.model_selection import ShuffleSplit, train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn import preprocessing
 from scipy.stats import uniform, randint
-from sklearn.metrics import accuracy_score, f1_score
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, f1_score
 
 from sklearn.base import clone
 from sklearn.inspection import permutation_importance
 
-from sklearn import preprocessing
 
 DATA_DIR = os.path.join("..", "..")
 DATA_DIR = os.path.join(DATA_DIR, "Data")
@@ -258,7 +257,7 @@ def main():
         best_clf = search.best_estimator_
  
     # Perform RFE with Permutation Importance
-    rfe = RFEPermutationImportance(best_clf, min_features_to_select=1, n_repeats=5)
+    rfe = RFEPermutationImportance(best_clf, min_features_to_select=58, n_repeats=5)
 
     rfe.fit(X_train, y_train, X_test, y_test)
        

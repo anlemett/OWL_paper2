@@ -7,16 +7,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 #import sys
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
-
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.model_selection import ShuffleSplit, train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn import preprocessing
 from scipy.stats import randint
+from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+from sklearn.metrics import accuracy_score, f1_score
+
 from sklearn.base import clone
 from sklearn.inspection import permutation_importance
 
-from sklearn import preprocessing
 
 DATA_DIR = os.path.join("..", "..")
 DATA_DIR = os.path.join(DATA_DIR, "Data")
@@ -30,14 +29,12 @@ RANDOM_STATE = 0
 BINARY = True
 EQUAL_PERCENTILES = False
 
-PLOT = True
+PLOT = False
 
 if BINARY == True:
     MODEL = "RF"
 else:
     MODEL = "HGBC"
-
-LABEL = "Workload"
 
 N_ITER = 100
 CV = 5
@@ -136,12 +133,7 @@ def getEEGThreshold(scores):
     if EQUAL_PERCENTILES:
         th = eeg_series.quantile(.5)
     else:
-        if LABEL == "Workload":
-            th = eeg_series.quantile(.93)
-        elif LABEL == "Vigilance":
-            th = eeg_series.quantile(.1)
-        else: #Stress
-            th = eeg_series.quantile(.1)
+        th = eeg_series.quantile(.93)
     return th
 
 def getEEGThresholds(scores):
@@ -205,6 +197,8 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(data_df, scores, test_size=0.1,
                                                         random_state=RANDOM_STATE,
                                                         shuffle=True)
+    
+    
     #normalize train set
     scaler = preprocessing.MinMaxScaler()
     scaler.fit(X_train)
@@ -287,8 +281,10 @@ def main():
         
         # Create a variable for the best model
         best_clf = search.best_estimator_
-
         
+        print('Best hyperparameters:',  search.best_params_)
+
+    
     # Perform RFE with Permutation Importance
     rfe = RFEPermutationImportance(best_clf, min_features_to_select=1, n_repeats=5)
 
@@ -317,7 +313,7 @@ def main():
     
     X_test_selected = X_test[selected_features]
     y_pred = best_clf.predict(X_test_selected)
-        
+    
     print("Shape at output after classification:", y_pred.shape)
 
     ############################ Evaluate #####################################
@@ -326,27 +322,13 @@ def main():
     
     accuracy = accuracy_score(y_pred=y_pred, y_true=y_test)
         
-    
-    if BINARY:
-        precision = precision_score(y_pred=y_pred, y_true=y_test, average='binary')
-        recall = recall_score(y_pred=y_pred, y_true=y_test, average='binary')
-        f1 = f1_score(y_pred=y_pred, y_true=y_test, average='binary')
-    else:
-        recall = recall_score(y_pred=y_pred, y_true=y_test, average='micro')
-        precision = precision_score(y_pred=y_pred, y_true=y_test, average='micro')
-        f1 = f1_score(y_pred=y_pred, y_true=y_test, average='micro')
-        
     f1_macro = f1_score(y_pred=y_pred, y_true=y_test, average='macro')
-        
     
     print("Accuracy:", accuracy)
-    #print("Precision: ", precision)
-    #print("Recall: ", recall)
-    #print("F1-score:", f1)
     print("Macro F1-score:", f1_macro)
     
-    #print(test_accuracies)
-    #print(test_f1_scores)
+    print(test_accuracies)
+    print(test_f1_scores)
     #print(f1_num_features_list)
         
     
