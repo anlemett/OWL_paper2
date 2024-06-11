@@ -26,19 +26,19 @@ FIG_DIR = os.path.join(".", "Figures")
 
 RANDOM_STATE = 0
 
-BINARY = True
+BINARY = False
 EQUAL_PERCENTILES = False
 
-#MODEL = "LR"
+MODEL = "LR"
 #MODEL = "SVC"
 #MODEL = "DT"
-MODEL = "RF"
+#MODEL = "RF"
 #MODEL = "HGBC"
-
+'''
 selected_features = ['Left Pupil Diameter Mean', 'Left Blink Closing Amplitude Max',
                      'Left Blink Opening Amplitude Max',
                      'Right Blink Closing Amplitude Max', 'Head Pitch Max']
-
+'''
 LABEL = "Workload"
 #LABEL = "Vigilance"
 #LABEL = "Stress"
@@ -108,8 +108,27 @@ def main():
 
     scores_np = np.loadtxt(full_filename, delimiter=" ")
     
-    
-    data_df = data_df[selected_features]
+    #data_df = data_df[selected_features]
+    '''
+    noncorr_features = ['Saccades Number', 'Saccades Duration Mean', 'Saccades Duration Std',
+       'Saccades Duration Median', 'Saccades Duration Max',
+       'Fixation Duration Mean', 'Fixation Duration Median',
+       'Fixation Duration Max', 'Left Pupil Diameter Mean',
+       'Right Pupil Diameter Mean', 'Left Blink Closing Amplitude Mean',
+       'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
+       'Left Pupil Diameter Std', 'Right Pupil Diameter Std',
+       'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
+       'Left Pupil Diameter Min', 'Right Pupil Diameter Min',
+       'Head Heading Min', 'Head Pitch Min', 'Head Roll Min',
+       'Left Pupil Diameter Max', 'Right Pupil Diameter Max',
+       'Left Blink Closing Amplitude Max', 'Left Blink Closing Speed Max',
+       'Left Blink Opening Speed Max', 'Right Blink Closing Amplitude Max',
+       'Right Blink Closing Speed Max', 'Head Heading Max', 'Head Pitch Max',
+       'Head Roll Max', 'Head Heading Median']
+
+    data_df = data_df[noncorr_features]
+    '''
+
     
     features_np = data_df.to_numpy()
     
@@ -219,7 +238,7 @@ def main():
 
     if MODEL == "LR":
         
-        clf = LogisticRegression(class_weight=weight_dict, solver='lbfgs')
+        clf = LogisticRegression(class_weight=weight_dict, solver='liblinear')
         
         param_dist = {
             'C': uniform(loc=0, scale=4),  # Regularization parameter

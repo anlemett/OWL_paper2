@@ -102,7 +102,7 @@ def main():
     
     # Drop correlated features
     
-    dcf = DropCorrelatedFeatures(threshold=0.9)
+    dcf = DropCorrelatedFeatures(threshold=0.95)
     data_df = dcf.fit_transform(data_df)
     
     print(len(data_df.columns))

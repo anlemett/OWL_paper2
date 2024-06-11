@@ -16,7 +16,10 @@ from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassif
 from sklearn.svm import SVC
 
 from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import  KFold
 from sklearn import preprocessing
+
+from feature_engine.selection import DropCorrelatedFeatures
 
 DATA_DIR = os.path.join("..", "..")
 DATA_DIR = os.path.join(DATA_DIR, "Data")
@@ -25,13 +28,13 @@ FIG_DIR = os.path.join(".", "Figures")
 
 RANDOM_STATE = 0
 
-BINARY = True
+BINARY = False
 
 #MODEL = "LR"
-MODEL = "SVC"
+#MODEL = "SVC"
 #MODEL = "DT"
 #MODEL = "RF"
-#MODEL = "HGBC"
+MODEL = "HGBC"
 
 N_ITER = 100
 CV = 5
@@ -72,25 +75,13 @@ def main():
     
     data_df = data_df.drop('ATCO', axis=1)
     
-    '''
-    noncorr_features = ['Saccades Number', 'Saccades Duration Mean', 'Saccades Duration Std',
-       'Saccades Duration Median', 'Saccades Duration Max',
-       'Fixation Duration Mean', 'Fixation Duration Median',
-       'Fixation Duration Max', 'Left Pupil Diameter Mean',
-       'Right Pupil Diameter Mean', 'Left Blink Closing Amplitude Mean',
-       'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
-       'Left Pupil Diameter Std', 'Right Pupil Diameter Std',
-       'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
-       'Left Pupil Diameter Min', 'Right Pupil Diameter Min',
-       'Head Heading Min', 'Head Pitch Min', 'Head Roll Min',
-       'Left Pupil Diameter Max', 'Right Pupil Diameter Max',
-       'Left Blink Closing Amplitude Max', 'Left Blink Closing Speed Max',
-       'Left Blink Opening Speed Max', 'Right Blink Closing Amplitude Max',
-       'Right Blink Closing Speed Max', 'Head Heading Max', 'Head Pitch Max',
-       'Head Roll Max', 'Head Heading Median']
-
-    data_df = data_df[noncorr_features]
-    '''
+    # Drop correlated features
+    
+    dcf = DropCorrelatedFeatures(threshold=0.95)
+    data_df = dcf.fit_transform(data_df)
+    
+    print(len(data_df.columns))
+    print(data_df.columns)
     
     features_np = data_df.to_numpy()
 

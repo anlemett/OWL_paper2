@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import ShuffleSplit, train_test_split
 from scipy.stats import randint
 from sklearn.base import clone
 from sklearn.inspection import permutation_importance
@@ -21,11 +22,15 @@ DATA_DIR = os.path.join("..", "..")
 DATA_DIR = os.path.join(DATA_DIR, "Data")
 ML_DIR = os.path.join(DATA_DIR, "MLInput")
 FIG_DIR = os.path.join(".", "Figures")
+if not os.path.exists(FIG_DIR):
+    os.makedirs(FIG_DIR)
 
 RANDOM_STATE = 0
 
-BINARY = False
+BINARY = True
 EQUAL_PERCENTILES = False
+
+PLOT = True
 
 if BINARY == True:
     MODEL = "RF"
@@ -33,8 +38,6 @@ else:
     MODEL = "HGBC"
 
 LABEL = "Workload"
-#LABEL = "Vigilance"
-#LABEL = "Stress"
 
 N_ITER = 100
 CV = 5
@@ -65,6 +68,15 @@ class RFEPermutationImportance:
     def fit(self, X, y, X_test, y_test):
         self.estimator_ = clone(self.estimator)
         features = list(X.columns)
+        
+        self.estimator_.fit(X[features], y)
+        
+        test_accuracy = accuracy_score(y_test, self.estimator_.predict(X_test[features]))
+        self.accuracies_.append((len(features), test_accuracy))
+        
+        test_f1_score = f1_score(y_test, self.estimator_.predict(X_test[features]), average='macro')
+        self.f1_scores_.append((len(features), test_f1_score))
+        
         while len(features) > self.min_features_to_select:
             self.estimator_.fit(X[features], y)
             importance = calculate_permutation_importance(self.estimator_, X[features], y, n_repeats=self.n_repeats)
@@ -160,25 +172,6 @@ def main():
 
     scores_np = np.loadtxt(full_filename, delimiter=" ")
     
-
-    noncorr_features = ['Saccades Number', 'Saccades Duration Mean', 'Saccades Duration Std',
-       'Saccades Duration Median', 'Saccades Duration Max',
-       'Fixation Duration Mean', 'Fixation Duration Median',
-       'Fixation Duration Max', 'Left Pupil Diameter Mean',
-       'Right Pupil Diameter Mean', 'Left Blink Closing Amplitude Mean',
-       'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
-       'Left Pupil Diameter Std', 'Right Pupil Diameter Std',
-       'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
-       'Left Pupil Diameter Min', 'Right Pupil Diameter Min',
-       'Head Heading Min', 'Head Pitch Min', 'Head Roll Min',
-       'Left Pupil Diameter Max', 'Right Pupil Diameter Max',
-       'Left Blink Closing Amplitude Max', 'Left Blink Closing Speed Max',
-       'Left Blink Opening Speed Max', 'Right Blink Closing Amplitude Max',
-       'Right Blink Closing Speed Max', 'Head Heading Max', 'Head Pitch Max',
-       'Head Roll Max', 'Head Heading Median']
-
-    data_df = data_df[noncorr_features]
-    
     features_np = data_df.to_numpy()
 
     ###########################################################################
@@ -187,12 +180,7 @@ def main():
     #print(features_np.shape)
     #print(scores_np.shape)
     
-    if LABEL == "Workload":
-        scores_np = scores_np[0,:] # WL
-    elif LABEL == "Vigilance":
-        scores_np = scores_np[1,:] # Vigilance
-    else:
-        scores_np = scores_np[2,:] # Stress
+    scores_np = scores_np[0,:] # Workload
 
     zipped = list(zip(features_np, scores_np))
 
@@ -202,8 +190,7 @@ def main():
 
     scores = list(scores_np)
     
-    #data_df = pd.DataFrame(features_np, columns=data_df.columns)
-    data_df = pd.DataFrame(features_np, columns=noncorr_features)
+    data_df = pd.DataFrame(features_np, columns=data_df.columns)
     
     
     # Spit the data into train and test
@@ -214,30 +201,10 @@ def main():
     f1_num_features_list = []
     
     # Split data
+    
     X_train, X_test, y_train, y_test = train_test_split(data_df, scores, test_size=0.1,
                                                         random_state=RANDOM_STATE,
                                                         shuffle=True)
-    
-    #data_split = ShuffleSplit(n_splits=1, test_size=.1, random_state=RANDOM_STATE)
-    #data_split = KFold(n_splits=10, random_state=None, shuffle=False)
-    '''
-    data_split = KFold(n_splits=10, random_state=RANDOM_STATE, shuffle=True)
-    
-    for i, (train_idx, test_idx) in enumerate(data_split.split(features_np, scores)):
-        X_train = np.array(features_np)[train_idx.astype(int)]
-        y_train = np.array(scores)[train_idx.astype(int)]
-        X_test = np.array(features_np)[test_idx.astype(int)]
-        y_test = np.array(scores)[test_idx.astype(int)]
-    '''
-    '''
-    kf = KFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
-    accuracies = []
-    f1_scores = []
-
-    for train_index, test_index in kf.split(data_df):
-        X_train, X_test = data_df.iloc[train_index], data_df.iloc[test_index]
-        y_train, y_test = [scores[i] for i in train_index], [scores[i] for i in test_index]
-    '''
     #normalize train set
     scaler = preprocessing.MinMaxScaler()
     scaler.fit(X_train)
@@ -343,13 +310,13 @@ def main():
     X_train_selected = X_train[selected_features]
 
     # Final model training with selected features
-    clf.fit(X_train_selected, y_train)
+    best_clf.fit(X_train_selected, y_train)
         
     
     ############################## Predict ####################################
     
     X_test_selected = X_test[selected_features]
-    y_pred = clf.predict(X_test_selected)
+    y_pred = best_clf.predict(X_test_selected)
         
     print("Shape at output after classification:", y_pred.shape)
 
@@ -378,32 +345,46 @@ def main():
     #print("F1-score:", f1)
     print("Macro F1-score:", f1_macro)
     
-    
-    # Plot the accuracies
-    plt.figure(figsize=(10, 6))
-    plt.plot(acc_num_features_list, test_accuracies, marker='o')
-    plt.xlabel('Number of Features')
-    plt.ylabel('Accuracy')
-    plt.title(MODEL)
-    plt.grid(True)
-    plt.show()
-    
     #print(test_accuracies)
-    
-    # Plot the accuracies
-    plt.figure(figsize=(10, 6))
-    plt.plot(f1_num_features_list, test_f1_scores, marker='o')
-    plt.xlabel('Number of Features')
-    plt.ylabel('F1-score')
-    plt.title(MODEL)
-    plt.grid(True)
-    plt.show()
-    
     #print(test_f1_scores)
-    
     #print(f1_num_features_list)
         
     
+    if PLOT:
+        filename = "acc_scoring_eeg_"
+        if BINARY:
+            filename = filename + "binary_"
+        else:
+            filename = filename + "3classes_"
+        filename = filename + MODEL
+        
+        # Plot accuracies
+        fig1, ax1 = plt.subplots()
+        ax1.plot(acc_num_features_list, test_accuracies, marker='o')
+        ax1.set_xlabel('Number of Features', fontsize=14)
+        ax1.set_ylabel('Accuracy', fontsize=14)
+        ax1.tick_params(axis='both', which='major', labelsize=12)
+        ax1.tick_params(axis='both', which='minor', labelsize=10)
+        plt.grid(True)
+        acc_filename = filename + "_acc.png"
+        full_filename = os.path.join(FIG_DIR, acc_filename)
+        plt.savefig(full_filename, dpi=600)
+        plt.show()
+        
+        # Plot F1-scores
+        fig2, ax2 = plt.subplots()
+        ax2.plot(f1_num_features_list, test_f1_scores, marker='o')
+        ax2.set_xlabel('Number of Features', fontsize=14)
+        ax2.set_ylabel('F1-score', fontsize=14)
+        ax2.tick_params(axis='both', which='major', labelsize=12)
+        ax2.tick_params(axis='both', which='minor', labelsize=10)
+        plt.grid(True)
+        f1_filename = filename + "_f1.png"
+        full_filename = os.path.join(FIG_DIR, f1_filename)
+        plt.savefig(full_filename, dpi=600)
+        plt.show()
+
+
 start_time = time.time()
 
 main()
