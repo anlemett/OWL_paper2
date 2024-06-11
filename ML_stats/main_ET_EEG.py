@@ -1,5 +1,6 @@
 import warnings
 warnings.filterwarnings('ignore')
+
 import time
 import os
 import numpy as np
@@ -13,12 +14,10 @@ from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassif
 from sklearn.svm import SVC
 
 from sklearn.model_selection import RandomizedSearchCV#, train_test_split, GridSearchCV
-from sklearn.model_selection import  KFold
+from sklearn.model_selection import ShuffleSplit
 from scipy.stats import randint
 from sklearn import preprocessing
 from scipy.stats import uniform
-
-from feature_engine.selection import DropCorrelatedFeatures
 
 DATA_DIR = os.path.join("..", "..")
 DATA_DIR = os.path.join(DATA_DIR, "Data")
@@ -27,12 +26,18 @@ FIG_DIR = os.path.join(".", "Figures")
 
 RANDOM_STATE = 0
 
-BINARY = False
+BINARY = True
 EQUAL_PERCENTILES = False
 
+#MODEL = "LR"
 #MODEL = "SVC"
+#MODEL = "DT"
 MODEL = "RF"
 #MODEL = "HGBC"
+
+selected_features = ['Left Pupil Diameter Mean', 'Left Blink Closing Amplitude Max',
+                     'Left Blink Opening Amplitude Max',
+                     'Right Blink Closing Amplitude Max', 'Head Pitch Max']
 
 LABEL = "Workload"
 #LABEL = "Vigilance"
@@ -98,21 +103,15 @@ def main():
     
     data_df = pd.read_csv(full_filename, sep=' ')
     
-    data_df = data_df.drop('ATCO', axis=1)
-    
-    # Drop correlated features
-    
-    dcf = DropCorrelatedFeatures(threshold=0.9)
-    data_df = dcf.fit_transform(data_df)
-    
-    print(len(data_df.columns))
-    print(data_df.columns)
-    
-    features_np = data_df.to_numpy()
 
     full_filename = os.path.join(ML_DIR, "ML_ET_EEG_" + str(TIME_INTERVAL_DURATION) + "__EEG.csv")
 
     scores_np = np.loadtxt(full_filename, delimiter=" ")
+    
+    
+    data_df = data_df[selected_features]
+    
+    features_np = data_df.to_numpy()
     
 
     ###########################################################################
@@ -136,19 +135,56 @@ def main():
 
     scores = list(scores_np)
     
+    #print(scores)
+    '''
+    if BINARY:
+        #Split into 2 bins by percentile
+        eeg_series = pd.Series(scores)
+        if EQUAL_PERCENTILES:
+            th = eeg_series.quantile(.5)
+        else:
+            if LABEL == "Workload":
+                th = eeg_series.quantile(.93)
+            elif LABEL == "Vigilance":
+                th = eeg_series.quantile(.1)
+            else:
+                th = eeg_series.quantile(.9)
+        scores = [1 if score < th else 2 for score in scores]
+
+    else:
+        #Split into 3 bins by percentile
+        eeg_series = pd.Series(scores)
+        if EQUAL_PERCENTILES:
+            (th1, th2) = eeg_series.quantile([.33, .66])
+        else:
+            (th1, th2) = eeg_series.quantile([.52, .93])
+            #(th1, th2) = eeg_series.quantile([.7, .48])
+        scores = [1 if score < th1 else 3 if score > th2 else 2 for score in scores]
+
+    #print(scores)
+       
+    number_of_classes = len(set(scores))
+    print(f"Number of classes : {number_of_classes}")
+    
+    weight_dict = weight_classes(scores)
+    '''
+    
+    #print(type(features_np))
+    features_np = np.array(features_np)
     
     # Spit the data into train and test
+    '''
+    X_train_df, X_test_df, y_train, y_test = train_test_split(
+        X_df, scores, test_size=0.1, shuffle=True
+        )
+    '''
+    rs = ShuffleSplit(n_splits=1, test_size=.1, random_state=RANDOM_STATE)
     
-    #data_split = ShuffleSplit(n_splits=1, test_size=.1, random_state=RANDOM_STATE)
-    #data_split = KFold(n_splits=10, random_state=None, shuffle=False)
-    data_split = KFold(n_splits=10, random_state=RANDOM_STATE, shuffle=True)
-    
-    for i, (train_idx, test_idx) in enumerate(data_split.split(features_np, scores)):
+    for i, (train_idx, test_idx) in enumerate(rs.split(features_np)):
         X_train = np.array(features_np)[train_idx.astype(int)]
         y_train = np.array(scores)[train_idx.astype(int)]
         X_test = np.array(features_np)[test_idx.astype(int)]
         y_test = np.array(scores)[test_idx.astype(int)]
-    
     
     #normalize train set
     scaler = preprocessing.MinMaxScaler()
@@ -197,9 +233,12 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
+        
+        # Fit the search object to the data
         search.fit(X_train, y_train)
+        
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
@@ -229,9 +268,12 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
+        
+        # Fit the search object to the data
         search.fit(X_train, y_train)
+        
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
@@ -259,9 +301,12 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
+        
+        # Fit the search object to the data
         search.fit(X_train, y_train)
+        
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
@@ -297,11 +342,12 @@ def main():
              }
         search = GridSearchCV(clf, param_grid=param_grid, cv=10)
         '''
+        
         # Fit the search object to the data
         search.fit(X_train, y_train)
  
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
@@ -330,9 +376,12 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
+        
+        # Fit the search object to the data
         search.fit(X_train, y_train)
+        
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
@@ -349,7 +398,7 @@ def main():
     
     ############################## Predict ####################################
     
-    y_pred = best_rf.predict(X_test)
+    y_pred = best_clf.predict(X_test)
 
     print("Shape at output after classification:", y_pred.shape)
 

@@ -4,26 +4,18 @@ import time
 import os
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 #import sys
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
-from sklearn.svm import SVC
 
-from sklearn.model_selection import RandomizedSearchCV, train_test_split#, GridSearchCV
-from sklearn.model_selection import  KFold
-from sklearn.feature_selection import RFECV
-from sklearn.feature_selection import RFE
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from scipy.stats import randint
 from sklearn.base import clone
-#from eli5 import show_weights
-#from eli5.sklearn import PermutationImportance
 from sklearn.inspection import permutation_importance
 
-from scipy.stats import randint
 from sklearn import preprocessing
-from scipy.stats import uniform
 
 DATA_DIR = os.path.join("..", "..")
 DATA_DIR = os.path.join(DATA_DIR, "Data")
@@ -32,14 +24,13 @@ FIG_DIR = os.path.join(".", "Figures")
 
 RANDOM_STATE = 0
 
-BINARY = True
+BINARY = False
 EQUAL_PERCENTILES = False
 
-#MODEL = "LR"
-#MODEL = "SVC"
-#MODEL = "DT"
-#MODEL = "RF"
-MODEL = "HGBC"
+if BINARY == True:
+    MODEL = "RF"
+else:
+    MODEL = "HGBC"
 
 LABEL = "Workload"
 #LABEL = "Vigilance"
@@ -55,7 +46,7 @@ TIME_INTERVAL_DURATION = 60
 np.random.seed(RANDOM_STATE)
 
 # Function to calculate permutation importance using sklearn
-def calculate_permutation_importance(model, X_val, y_val, scoring='accuracy', n_repeats=5):
+def calculate_permutation_importance(model, X_val, y_val, scoring=SCORING, n_repeats=5):
     result = permutation_importance(model, X_val, y_val, scoring=scoring,
                                     n_repeats=n_repeats, random_state=RANDOM_STATE)
     return result.importances_mean
@@ -68,8 +59,10 @@ class RFEPermutationImportance:
         self.step = step
         self.min_features_to_select = min_features_to_select
         self.n_repeats = n_repeats
+        self.accuracies_ = []
+        self.f1_scores_ = []
 
-    def fit(self, X, y):
+    def fit(self, X, y, X_test, y_test):
         self.estimator_ = clone(self.estimator)
         features = list(X.columns)
         while len(features) > self.min_features_to_select:
@@ -85,7 +78,17 @@ class RFEPermutationImportance:
             
             print(f'Removed feature: {least_important_feature}')
             print(f'Remaining features: {len(features)}')
-        
+            
+            # Evaluate and store test accuracy and F1-score without removed feature
+            
+            self.estimator_.fit(X[features], y)
+            
+            test_accuracy = accuracy_score(y_test, self.estimator_.predict(X_test[features]))
+            self.accuracies_.append((len(features), test_accuracy))
+            
+            test_f1_score = f1_score(y_test, self.estimator_.predict(X_test[features]), average='macro')
+            self.f1_scores_.append((len(features), test_f1_score))
+                    
         self.support_ = np.isin(X.columns, features)
         self.ranking_ = np.ones(len(X.columns), dtype=int)
         self.ranking_[~self.support_] = len(X.columns) - np.sum(self.support_) + 1
@@ -152,12 +155,31 @@ def main():
     print(len(data_df.columns))
     #print(data_df.columns)
     
-    features_np = data_df.to_numpy()
 
     full_filename = os.path.join(ML_DIR, "ML_ET_EEG_" + str(TIME_INTERVAL_DURATION) + "__EEG.csv")
 
     scores_np = np.loadtxt(full_filename, delimiter=" ")
     
+
+    noncorr_features = ['Saccades Number', 'Saccades Duration Mean', 'Saccades Duration Std',
+       'Saccades Duration Median', 'Saccades Duration Max',
+       'Fixation Duration Mean', 'Fixation Duration Median',
+       'Fixation Duration Max', 'Left Pupil Diameter Mean',
+       'Right Pupil Diameter Mean', 'Left Blink Closing Amplitude Mean',
+       'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
+       'Left Pupil Diameter Std', 'Right Pupil Diameter Std',
+       'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
+       'Left Pupil Diameter Min', 'Right Pupil Diameter Min',
+       'Head Heading Min', 'Head Pitch Min', 'Head Roll Min',
+       'Left Pupil Diameter Max', 'Right Pupil Diameter Max',
+       'Left Blink Closing Amplitude Max', 'Left Blink Closing Speed Max',
+       'Left Blink Opening Speed Max', 'Right Blink Closing Amplitude Max',
+       'Right Blink Closing Speed Max', 'Head Heading Max', 'Head Pitch Max',
+       'Head Roll Max', 'Head Heading Median']
+
+    data_df = data_df[noncorr_features]
+    
+    features_np = data_df.to_numpy()
 
     ###########################################################################
     #Shuffle data
@@ -180,10 +202,16 @@ def main():
 
     scores = list(scores_np)
     
-    data_df = pd.DataFrame(features_np, columns=data_df.columns)
+    #data_df = pd.DataFrame(features_np, columns=data_df.columns)
+    data_df = pd.DataFrame(features_np, columns=noncorr_features)
     
     
     # Spit the data into train and test
+    
+    test_accuracies = []
+    acc_num_features_list = []
+    test_f1_scores = []
+    f1_num_features_list = []
     
     # Split data
     X_train, X_test, y_train, y_test = train_test_split(data_df, scores, test_size=0.1,
@@ -244,33 +272,8 @@ def main():
     print(f"Model: {MODEL}")
     print(f"Scoring: {SCORING}, n_iter: {N_ITER}, cv: {CV}")
     
-        
-    if MODEL == "SVC":
-        
-        clf = SVC(class_weight=weight_dict)
-        
-        param_dist = {
-                'C': uniform(loc=0, scale=10),  # Regularization parameter
-                'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],  # Kernel type
-                'gamma': ['scale', 'auto'],  # Kernel coefficient
-                'degree': randint(1, 10)  # Degree of polynomial kernel
-                }
-        
-        search = RandomizedSearchCV(clf, 
-                                param_distributions = param_dist,
-                                scoring = SCORING,
-                                n_iter=N_ITER,
-                                cv=CV,
-                                n_jobs=-1,
-                                random_state=RANDOM_STATE)
-        search.fit(X_train, y_train)
-        # Create a variable for the best model
-        best_rf = search.best_estimator_
-
-        # Print the best hyperparameters
-        print('Best hyperparameters:',  search.best_params_)
-            
-    elif  MODEL == "RF":
+    
+    if  MODEL == "RF":
         clf = RandomForestClassifier(class_weight=weight_dict,
                                      #bootstrap=False,
                                      max_features=None,
@@ -278,8 +281,8 @@ def main():
         
         # Use random search to find the best hyperparameters
         param_dist = {'n_estimators': randint(50,500),
-                      'max_depth': randint(1,79),
-                      }
+             'max_depth': randint(1,79),
+             }
         
         search = RandomizedSearchCV(clf, 
                                 param_distributions = param_dist,
@@ -288,25 +291,22 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
-
+        
         # Fit the search object to the data
         search.fit(X_train, y_train)
  
         # Create a variable for the best model
-        best_rf = search.best_estimator_
-
-        # Print the best hyperparameters
-        print('Best hyperparameters:',  search.best_params_)
-         
+        best_clf = search.best_estimator_
+                
     elif MODEL == "HGBC":
         clf = HistGradientBoostingClassifier(class_weight='balanced',
                                              random_state=RANDOM_STATE)
-
+        
         # Use random search to find the best hyperparameters
-        '''
         param_dist = {
-                'max_depth': randint(1,79),
+             'max_depth': randint(1,79),
              }
+        
         search = RandomizedSearchCV(clf, 
                                 param_distributions = param_dist,
                                 scoring = SCORING,
@@ -314,64 +314,95 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
+        
+        # Fit the search object to the data
         search.fit(X_train, y_train)
+        
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
-        # Print the best hyperparameters
-        print('Best hyperparameters:',  search.best_params_)
-        '''  
-        #clf.fit(X_train, y_train)
         
-        # Perform RFE with Permutation Importance
-        rfe = RFEPermutationImportance(clf, min_features_to_select=1, n_repeats=5)
+    # Perform RFE with Permutation Importance
+    rfe = RFEPermutationImportance(best_clf, min_features_to_select=1, n_repeats=5)
 
-        rfe.fit(X_train, y_train)
-
-        # Select the remaining features
-        selected_features = list(X_train.columns[rfe.support_])
+    rfe.fit(X_train, y_train, X_test, y_test)
+    
+    # Store accuracies for plotting
+    for num_features, accuracy in rfe.accuracies_:
+        acc_num_features_list.append(num_features)
+        test_accuracies.append(accuracy)
+    
+    # Store accuracies for plotting
+    for num_features, train_f1_score in rfe.f1_scores_:
+         f1_num_features_list.append(num_features)
+         test_f1_scores.append(train_f1_score)
+    
+    # Select the remaining features
+    selected_features = list(X_train.columns[rfe.support_])
                
-        X_train_selected = X_train[selected_features]
+    X_train_selected = X_train[selected_features]
 
-        # Final model training with selected features
-        clf.fit(X_train_selected, y_train)
+    # Final model training with selected features
+    clf.fit(X_train_selected, y_train)
         
     
-        ############################## Predict ####################################
+    ############################## Predict ####################################
     
-        #y_pred = clf.predict(X_test)
-        #y_pred = best_rf.predict(X_test)
+    X_test_selected = X_test[selected_features]
+    y_pred = clf.predict(X_test_selected)
         
-        X_test_selected = X_test[selected_features]
-        y_pred = clf.predict(X_test_selected)
-        
-        print("Shape at output after classification:", y_pred.shape)
+    print("Shape at output after classification:", y_pred.shape)
 
-        ############################ Evaluate #####################################
+    ############################ Evaluate #####################################
         
-        print(selected_features)
+    print(selected_features)
     
-        accuracy = accuracy_score(y_pred=y_pred, y_true=y_test)
-        
-    
-        if BINARY:
-            precision = precision_score(y_pred=y_pred, y_true=y_test, average='binary')
-            recall = recall_score(y_pred=y_pred, y_true=y_test, average='binary')
-            f1 = f1_score(y_pred=y_pred, y_true=y_test, average='binary')
-        else:
-            recall = recall_score(y_pred=y_pred, y_true=y_test, average='micro')
-            precision = precision_score(y_pred=y_pred, y_true=y_test, average='micro')
-            f1 = f1_score(y_pred=y_pred, y_true=y_test, average='micro')
-        
-        f1_macro = f1_score(y_pred=y_pred, y_true=y_test, average='macro')
+    accuracy = accuracy_score(y_pred=y_pred, y_true=y_test)
         
     
-        print("Accuracy:", accuracy)
-        #print("Precision: ", precision)
-        #print("Recall: ", recall)
-        #print("F1-score:", f1)
-        print("Macro F1-score:", f1_macro)
-            
+    if BINARY:
+        precision = precision_score(y_pred=y_pred, y_true=y_test, average='binary')
+        recall = recall_score(y_pred=y_pred, y_true=y_test, average='binary')
+        f1 = f1_score(y_pred=y_pred, y_true=y_test, average='binary')
+    else:
+        recall = recall_score(y_pred=y_pred, y_true=y_test, average='micro')
+        precision = precision_score(y_pred=y_pred, y_true=y_test, average='micro')
+        f1 = f1_score(y_pred=y_pred, y_true=y_test, average='micro')
+        
+    f1_macro = f1_score(y_pred=y_pred, y_true=y_test, average='macro')
+        
+    
+    print("Accuracy:", accuracy)
+    #print("Precision: ", precision)
+    #print("Recall: ", recall)
+    #print("F1-score:", f1)
+    print("Macro F1-score:", f1_macro)
+    
+    
+    # Plot the accuracies
+    plt.figure(figsize=(10, 6))
+    plt.plot(acc_num_features_list, test_accuracies, marker='o')
+    plt.xlabel('Number of Features')
+    plt.ylabel('Accuracy')
+    plt.title(MODEL)
+    plt.grid(True)
+    plt.show()
+    
+    #print(test_accuracies)
+    
+    # Plot the accuracies
+    plt.figure(figsize=(10, 6))
+    plt.plot(f1_num_features_list, test_f1_scores, marker='o')
+    plt.xlabel('Number of Features')
+    plt.ylabel('F1-score')
+    plt.title(MODEL)
+    plt.grid(True)
+    plt.show()
+    
+    #print(test_f1_scores)
+    
+    #print(f1_num_features_list)
+        
     
 start_time = time.time()
 

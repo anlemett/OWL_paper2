@@ -8,17 +8,15 @@ import pandas as pd
 #import sys
 
 from sklearn.model_selection import RandomizedSearchCV #, train_test_split
+from scipy.stats import uniform, randint
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.svm import SVC
 
-from scipy.stats import randint
-
-#from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import ShuffleSplit
 from sklearn import preprocessing
-from scipy.stats import uniform
 
 DATA_DIR = os.path.join("..", "..")
 DATA_DIR = os.path.join(DATA_DIR, "Data")
@@ -30,9 +28,9 @@ RANDOM_STATE = 0
 BINARY = True
 
 #MODEL = "LR"
-#MODEL = "SVC"
+MODEL = "SVC"
 #MODEL = "DT"
-MODEL = "RF"
+#MODEL = "RF"
 #MODEL = "HGBC"
 
 N_ITER = 100
@@ -72,7 +70,27 @@ def main():
     
     data_df = pd.read_csv(full_filename, sep=' ')
     
-    #features_np = data_df.to_numpy()
+    data_df = data_df.drop('ATCO', axis=1)
+    
+    noncorr_features = ['Saccades Number', 'Saccades Duration Mean', 'Saccades Duration Std',
+       'Saccades Duration Median', 'Saccades Duration Max',
+       'Fixation Duration Mean', 'Fixation Duration Median',
+       'Fixation Duration Max', 'Left Pupil Diameter Mean',
+       'Right Pupil Diameter Mean', 'Left Blink Closing Amplitude Mean',
+       'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
+       'Left Pupil Diameter Std', 'Right Pupil Diameter Std',
+       'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
+       'Left Pupil Diameter Min', 'Right Pupil Diameter Min',
+       'Head Heading Min', 'Head Pitch Min', 'Head Roll Min',
+       'Left Pupil Diameter Max', 'Right Pupil Diameter Max',
+       'Left Blink Closing Amplitude Max', 'Left Blink Closing Speed Max',
+       'Left Blink Opening Speed Max', 'Right Blink Closing Amplitude Max',
+       'Right Blink Closing Speed Max', 'Head Heading Max', 'Head Pitch Max',
+       'Head Roll Max', 'Head Heading Median']
+
+    data_df = data_df[noncorr_features]
+    
+    features_np = data_df.to_numpy()
 
     full_filename = os.path.join(ML_DIR, "ML_ET_CH__CH.csv")
 
@@ -84,11 +102,11 @@ def main():
     #print(features_np.shape)
     #print(scores_np.shape)
 
-    #zipped = list(zip(features_np, scores_np))
+    zipped = list(zip(features_np, scores_np))
 
-    #np.random.shuffle(zipped)
+    np.random.shuffle(zipped)
 
-    #features_np, scores_np = zip(*zipped)
+    features_np, scores_np = zip(*zipped)
 
     scores = list(scores_np)
     
@@ -99,8 +117,6 @@ def main():
     else:
         scores = [1 if score < 2 else 3 if score > 3 else 2 for score in scores]
 
-    data_df['scores'] = scores
-    
     #print(scores)
     
     print("CHS")
@@ -110,12 +126,6 @@ def main():
     weight_dict = weight_classes(scores)
         
     # Spit the data into train and test
-    
-    test_ATCO = 1.0
-    
-    data_df_train = data_df[data_df['ATCO']!=test_ATCO]
-    data_df_test = data_df[data_df['ATCO']==test_ATCO]
-    
     '''
     X_train, X_test, y_train, y_test = train_test_split(
         TS_np, scores, test_size=0.1, random_state=RANDOM_STATE, shuffle=True
@@ -128,7 +138,7 @@ def main():
         f"Length of train  X : {len(X_train)}\nLength of test X : {len(X_test)}\nLength of train Y : {len(y_train)}\nLength of test Y : {len(y_test)}"
         )
     '''
-    '''
+
     rs = ShuffleSplit(n_splits=1, test_size=.1, random_state=RANDOM_STATE)
 
     for i, (train_idx, test_idx) in enumerate(rs.split(features_np)):
@@ -136,25 +146,9 @@ def main():
         y_train = np.array(scores)[train_idx.astype(int)]
         X_test = np.array(features_np)[test_idx.astype(int)]
         y_test = np.array(scores)[test_idx.astype(int)]
-    '''
-    scores_train = data_df_train['scores'].to_list()
-    scores_test = data_df_test['scores'].to_list()
-       
-    data_df_train = data_df_train.drop('ATCO', axis=1)
-    data_df_train = data_df_train.drop('scores', axis=1)
-    data_df_test = data_df_test.drop('ATCO', axis=1)
-    data_df_test = data_df_test.drop('scores', axis=1)
-    
-    X_train = data_df_train.to_numpy()
-    X_train = np.array(X_train)
-    X_test = data_df_test.to_numpy()
-    X_test = np.array(X_test)
-    
-    y_train = np.array(scores_train)
-    y_test = np.array(scores_test)
-    
-    
+
     #normalize train set
+    
     scaler = preprocessing.MinMaxScaler()
     scaler.fit(X_train)
     X_train = scaler.transform(X_train)
@@ -184,9 +178,12 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
+        
+        # Fit the search object to the data
         search.fit(X_train, y_train)
+        
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
@@ -216,9 +213,12 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
+        
+        # Fit the search object to the data
         search.fit(X_train, y_train)
+        
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
@@ -245,9 +245,12 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
+        
+        # Fit the search object to the data
         search.fit(X_train, y_train)
+        
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
@@ -286,11 +289,10 @@ def main():
         search = GridSearchCV(clf, param_grid=param_grid, cv=CV)
         '''
         # Fit the search object to the data
-        #search.fit(X_train_df, y_train)
         search.fit(X_train, y_train)
 
         # Create a variable for the best model
-        best_rf = search.best_estimator_
+        best_clf = search.best_estimator_
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
@@ -318,12 +320,17 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
+        
+        # Fit the search object to the data
         search.fit(X_train, y_train)
+        
         # Create a variable for the best model
-        best_rf = search.best_estimator_
-
+        best_clf = search.best_estimator_
+ 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
+        
+        
         # scoring = 'accuracy', n_iter=100, cv=5:
         #WL, 3 classes: {'max_depth': 11} Acc=0.82, MacroF1=0.7  time:216sec
         #WL, binary: {'max_depth': 4} Acc=0.91, MacroF1=0.73     time:45sec
@@ -334,7 +341,7 @@ def main():
     
     ############################## Predict ####################################
 
-    y_pred = best_rf.predict(X_test)
+    y_pred = best_clf.predict(X_test)
 
     print("Shape at output after classification:", y_pred.shape)
     
