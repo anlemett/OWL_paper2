@@ -21,6 +21,7 @@ WINDOW_SIZE = 250 * TIME_INTERVAL_DURATION
 features = ['SaccadesNumber', 'SaccadesTotalDuration',
             'SaccadesDurationMean', 'SaccadesDurationStd', 'SaccadesDurationMedian',
             'SaccadesDurationMin', 'SaccadesDurationMax',
+            'FixationNumber', 'FixationTotalDuration',
             'FixationDurationMean', 'FixationDurationStd', 'FixationDurationMedian',
             'FixationDurationMin', 'FixationDurationMax',
             'LeftPupilDiameter', 'RightPupilDiameter',
@@ -142,7 +143,7 @@ def get_TS_np(features):
 
 #print(np.isnan(TS_np).any())
 
-print(TS_np.shape) # 60 -> (1731, 15000, 25)
+print(TS_np.shape) # 60 -> (1731, 15000, 27)
 
 print(len(scores))
 

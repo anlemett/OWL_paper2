@@ -17,6 +17,7 @@ saccade_fixation = [
             'Saccades Number', 'Saccades Total Duration',
             'Saccades Duration Mean', 'Saccades Duration Std', 'Saccades Duration Median',
             'Saccades Duration Min', 'Saccades Duration Max',
+            'FixationNumber', 'FixationTotalDuration',
             'Fixation Duration Mean', 'Fixation Duration Std', 'Fixation Duration Median',
             'Fixation Duration Min', 'Fixation Duration Max',
             ]
@@ -53,9 +54,9 @@ def featurize_data(x_data):
     """
     print("Input shape before feature union:", x_data.shape)
     
-    new_data = x_data[:,0,:13]
+    new_data = x_data[:,0,:15]
 
-    feature_to_featurize = x_data[:,:,13:]
+    feature_to_featurize = x_data[:,:,15:]
     
     mean = np.mean(feature_to_featurize, axis=-2)
     std = np.std(feature_to_featurize, axis=-2)
@@ -91,11 +92,11 @@ def main():
     
     # Reshape the 2D array back to its original 3D shape
     # (number_of_timeintervals, TIME_INTERVAL_DURATION*250, number_of_features)
-    # 60 -> (1731, 15000, 26), 180 -> (667, 45000, 26)
+    # 60 -> (1731, 15000, 28), 180 -> (667, 45000, 28)
     if TIME_INTERVAL_DURATION == 60:
-        TS_np = TS_np.reshape((1731, 15000, 26))
+        TS_np = TS_np.reshape((1731, 15000, 28))
     else:
-        TS_np = TS_np.reshape((667, 45000, 26))
+        TS_np = TS_np.reshape((667, 45000, 28))
     
     X_featurized = featurize_data(TS_np)
     

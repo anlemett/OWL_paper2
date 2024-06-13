@@ -7,17 +7,14 @@ import numpy as np
 import pandas as pd
 #import sys
 
-from sklearn.model_selection import RandomizedSearchCV #, train_test_split
-from scipy.stats import uniform, randint
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.model_selection import ShuffleSplit, RandomizedSearchCV
+from sklearn import preprocessing
+from scipy.stats import randint, uniform
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.svm import SVC
-
-from sklearn.model_selection import ShuffleSplit
-from sklearn.model_selection import  KFold
-from sklearn import preprocessing
+from sklearn.metrics import accuracy_score, f1_score
 
 from feature_engine.selection import DropCorrelatedFeatures
 
@@ -28,7 +25,7 @@ FIG_DIR = os.path.join(".", "Figures")
 
 RANDOM_STATE = 0
 
-BINARY = False
+BINARY = True
 
 #MODEL = "LR"
 #MODEL = "SVC"
@@ -77,11 +74,20 @@ def main():
     
     # Drop correlated features
     
-    dcf = DropCorrelatedFeatures(threshold=0.95)
+    init_features = data_df.columns
+    
+    dcf = DropCorrelatedFeatures(threshold=0.999)
     data_df = dcf.fit_transform(data_df)
     
-    print(len(data_df.columns))
-    print(data_df.columns)
+    new_features = data_df.columns
+    
+    features_dif = [item for item in init_features if item not in new_features]
+    
+    print(len(init_features))
+    print(len(new_features))
+    print(len(features_dif))
+    
+    print(features_dif)
     
     features_np = data_df.to_numpy()
 
@@ -119,19 +125,7 @@ def main():
     weight_dict = weight_classes(scores)
         
     # Spit the data into train and test
-    '''
-    X_train, X_test, y_train, y_test = train_test_split(
-        TS_np, scores, test_size=0.1, random_state=RANDOM_STATE, shuffle=True
-        )
-    
-    X_train = np.array(X_train)
-    X_test = np.array(X_test)
-    
-    print(
-        f"Length of train  X : {len(X_train)}\nLength of test X : {len(X_test)}\nLength of train Y : {len(y_train)}\nLength of test Y : {len(y_test)}"
-        )
-    '''
-
+ 
     rs = ShuffleSplit(n_splits=1, test_size=.1, random_state=RANDOM_STATE)
 
     for i, (train_idx, test_idx) in enumerate(rs.split(features_np)):
@@ -157,7 +151,8 @@ def main():
 
     if MODEL == "LR":
 
-        clf = LogisticRegression(class_weight=weight_dict, solver='liblinear')
+        clf = LogisticRegression(class_weight=weight_dict, solver='liblinear',
+                                 max_iter=1000)
         
         param_dist = {
             'C': uniform(loc=0, scale=4),  # Regularization parameter
@@ -180,13 +175,6 @@ def main():
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'C': 1.657, 'penalty': l2} Acc=0.69, MacroF1=0.55 time:1sec
-        #WL, binary: {'C': 0.019, 'penalty': l2} Acc=0.85, MacroF1=0.46    time:1sec
-
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'C': 3.779, 'penalty': l2} Acc=0.72, MacroF1=0.57 time:1sec
-        #WL, binary: {'C': 0.077, 'penalty': l2} Acc=0.85, MacroF1=0.65    time:1sec
         
     elif MODEL == "SVC":
 
@@ -215,13 +203,6 @@ def main():
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'C': 6.748, 'kernel': poly, 'gamma': scale, 'degree': 5} Acc=0.81, MacroF1=0.72 time:1sec
-        #WL, binary: {'C': 0.567, 'kernel': sigmoid, 'gamma': scale, 'degree': 2} Acc=0.9, MacroF1=0.47  time:1sec
-
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'C': 6.748, 'kernel': poly, 'gamma': scale, 'degree': 5} Acc=0.81, MacroF1=0.72 time:1sec
-        #WL, binary: {'C': 3.154, 'kernel': poly, 'gamma': scale, 'degree': 6} Acc=0.93, MacroF1=0.81    time:1sec
 
     elif  MODEL == "DT":
         clf = DecisionTreeClassifier(class_weight=weight_dict)
@@ -247,15 +228,7 @@ def main():
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 5} Acc=0.7, MacroF1=0.65   time:2sec
-        #WL, binary: {'max_depth': 37} Acc=0.91, MacroF1=0.73    time:1sec
 
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 33} Acc=0.69, MacroF1=0.64 time:9sec
-        #WL, binary: {'max_depth': 59} Acc=0.91, MacroF1=0.73    time:1sec
-
-    
     elif  MODEL == "RF":
         
         clf = RandomForestClassifier(class_weight=weight_dict,
@@ -275,12 +248,7 @@ def main():
                                 cv=CV,
                                 n_jobs=-1,
                                 random_state=RANDOM_STATE)
-        '''
-        param_grid = {'n_estimators': np.arange(100, 150, dtype=int),
-             'max_depth': np.arange(1, 79, dtype=int),
-             }
-        search = GridSearchCV(clf, param_grid=param_grid, cv=CV)
-        '''
+
         # Fit the search object to the data
         search.fit(X_train, y_train)
 
@@ -289,13 +257,6 @@ def main():
 
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': , 'n_estimators': } Acc=0., MacroF1=0. time:sec
-        #WL, binary: {'max_depth': 45, 'n_estimators': 97} Acc=0.91, MacroF1=0.73   time:488sec
-        
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 5, 'n_estimators': 287} Acc=0.7, MacroF1=0.65 time:864sec
-        #WL, binary: {'max_depth': 45, 'n_estimators': 97} Acc=0.91, MacroF1=0.73   time:501sec
         
     elif  MODEL == "HGBC":
         clf = HistGradientBoostingClassifier(class_weight='balanced',
@@ -323,15 +284,7 @@ def main():
         # Print the best hyperparameters
         print('Best hyperparameters:',  search.best_params_)
         
-        
-        # scoring = 'accuracy', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 11} Acc=0.82, MacroF1=0.7  time:216sec
-        #WL, binary: {'max_depth': 4} Acc=0.91, MacroF1=0.73     time:45sec
-
-        # scoring = 'f1_macro', n_iter=100, cv=5:
-        #WL, 3 classes: {'max_depth': 45} Acc=0.84, MacroF1=0.72 time:204sec
-        #WL, binary: {'max_depth': 4} Acc=0.91, MacroF1=0.73     time:40sec
-    
+  
     ############################## Predict ####################################
 
     y_pred = best_clf.predict(X_test)
@@ -341,22 +294,10 @@ def main():
     ############################ Evaluate #####################################
     
     accuracy = accuracy_score(y_pred=y_pred, y_true=y_test)
-    
-    if BINARY:
-        precision = precision_score(y_pred=y_pred, y_true=y_test, average='binary')
-        recall = recall_score(y_pred=y_pred, y_true=y_test, average='binary')
-        f1 = f1_score(y_pred=y_pred, y_true=y_test, average='binary')
-    else:
-        recall = recall_score(y_pred=y_pred, y_true=y_test, average='micro')
-        precision = precision_score(y_pred=y_pred, y_true=y_test, average='micro')
-        f1 = f1_score(y_pred=y_pred, y_true=y_test, average='micro')
-        
+            
     f1_macro = f1_score(y_pred=y_pred, y_true=y_test, average='macro')
     
     print("Accuracy:", accuracy)
-    #print("Precision: ", precision)
-    #print("Recall: ", recall)
-    #print("F1-score:", f1)
     print("Macro F1-score:", f1_macro)
 
     

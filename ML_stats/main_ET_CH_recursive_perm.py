@@ -15,6 +15,8 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, f1_score
 
+from feature_engine.selection import DropCorrelatedFeatures
+
 from sklearn.base import clone
 from sklearn.inspection import permutation_importance
 
@@ -29,9 +31,9 @@ if not os.path.exists(FIG_DIR):
 
 RANDOM_STATE = 0
 
-BINARY = True
+BINARY = False
 
-PLOT = True
+PLOT = False
 
 if BINARY == True:
     MODEL = "SVC"
@@ -138,6 +140,28 @@ def main():
     data_df = pd.read_csv(full_filename, sep=' ')
     
     data_df = data_df.drop('ATCO', axis=1)
+    
+    dcf = DropCorrelatedFeatures(threshold=0.9999)
+    data_df = dcf.fit_transform(data_df)   
+    
+    print(len(data_df.columns))
+    #print(data_df.columns)
+    
+    # binary
+    '''
+    selected_features = ['Left Pupil Diameter Mean',
+                         'Head Heading Mean',
+                         'Head Pitch Mean']
+    '''
+    # 3 classes
+    
+    selected_features = ['Left Pupil Diameter Median',
+                         'Right Pupil Diameter Median',
+                         'Head Pitch Max',
+                         'Head Pitch Median',
+                         'Head Roll Median']
+    
+    data_df = data_df[selected_features]
     
 
     full_filename = os.path.join(ML_DIR, "ML_ET_CH__CH.csv")
@@ -257,7 +281,7 @@ def main():
         best_clf = search.best_estimator_
  
     # Perform RFE with Permutation Importance
-    rfe = RFEPermutationImportance(best_clf, min_features_to_select=58, n_repeats=5)
+    rfe = RFEPermutationImportance(best_clf, min_features_to_select=59, n_repeats=5)
 
     rfe.fit(X_train, y_train, X_test, y_test)
        
@@ -299,8 +323,8 @@ def main():
     print("Accuracy:", accuracy)
     print("Macro F1-score:", f1_macro)
 
-    #print(test_accuracies)
-    #print(test_f1_scores)
+    print(test_accuracies)
+    print(test_f1_scores)
     
     if PLOT:
     

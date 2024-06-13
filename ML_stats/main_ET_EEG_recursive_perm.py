@@ -13,6 +13,8 @@ from scipy.stats import randint
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.metrics import accuracy_score, f1_score
 
+from feature_engine.selection import DropCorrelatedFeatures
+
 from sklearn.base import clone
 from sklearn.inspection import permutation_importance
 
@@ -31,10 +33,13 @@ EQUAL_PERCENTILES = False
 
 PLOT = False
 
+
 if BINARY == True:
     MODEL = "RF"
+
 else:
     MODEL = "HGBC"
+
 
 N_ITER = 100
 CV = 5
@@ -156,8 +161,26 @@ def main():
     
     data_df = data_df.drop('ATCO', axis=1)
     
+    dcf = DropCorrelatedFeatures(threshold=0.9999)
+    data_df = dcf.fit_transform(data_df)
+    
     print(len(data_df.columns))
     #print(data_df.columns)
+    
+    # binary
+    selected_features = ['Left Pupil Diameter Mean',
+                         'Head Heading Mean',
+                         'Head Pitch Mean']
+    
+    # 3 classes
+    '''
+    selected_features = ['Left Pupil Diameter Median',
+                         'Right Pupil Diameter Median',
+                         'Head Pitch Max',
+                         'Head Pitch Median',
+                         'Head Roll Median']
+    '''
+    data_df = data_df[selected_features]
     
 
     full_filename = os.path.join(ML_DIR, "ML_ET_EEG_" + str(TIME_INTERVAL_DURATION) + "__EEG.csv")
@@ -286,7 +309,7 @@ def main():
 
     
     # Perform RFE with Permutation Importance
-    rfe = RFEPermutationImportance(best_clf, min_features_to_select=1, n_repeats=5)
+    rfe = RFEPermutationImportance(best_clf, min_features_to_select=59, n_repeats=5)
 
     rfe.fit(X_train, y_train, X_test, y_test)
     

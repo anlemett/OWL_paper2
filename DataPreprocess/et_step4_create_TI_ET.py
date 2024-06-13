@@ -51,6 +51,7 @@ filenames = [["D1r1_MO", "D1r2_MO", "D1r3_MO"],
 new_features = ['SaccadesNumber', 'SaccadesTotalDuration',
                 'SaccadesDurationMean', 'SaccadesDurationStd', 'SaccadesDurationMedian',
                 'SaccadesDurationMin', 'SaccadesDurationMax',
+                'FixationNumber', 'FixationTotalDuration',
                 'FixationDurationMean', 'FixationDurationStd', 'FixationDurationMedian',
                 'FixationDurationMin', 'FixationDurationMax',
                 'LeftPupilDiameter', 'RightPupilDiameter',
@@ -118,8 +119,8 @@ for atco in filenames:
         SaccadesDurationMin = []
         SaccadesDurationMax = []
 
-        #FixationNumber = []
-        #FixationTotalDuration = []
+        FixationNumber = []
+        FixationTotalDuration = []
         FixationDurationMean = []
         FixationDurationStd = []
         FixationDurationMedian = []
@@ -167,9 +168,9 @@ for atco in filenames:
                 sys.exit(1)
 
             else:
-                #fixation_total_duration = len(ti_fixation_df.index)
+                fixation_total_duration = len(ti_fixation_df.index)
                 fixation_set = set(ti_fixation_df['Fixation'].tolist())
-                #fixation_number = len(fixation_set)
+                fixation_number = len(fixation_set)
                 fixation_duration = []
                 for fixation in fixation_set:
                     fixation_df = ti_df[ti_df['Fixation']==fixation]
@@ -190,6 +191,8 @@ for atco in filenames:
             SaccadesDurationMin.extend([saccades_duration_min]*TIME_INTERVAL_DURATION*250)
             SaccadesDurationMax.extend([saccades_duration_max]*TIME_INTERVAL_DURATION*250)
             
+            FixationNumber.extend([fixation_number]*TIME_INTERVAL_DURATION*250)
+            FixationTotalDuration.extend([fixation_total_duration]*TIME_INTERVAL_DURATION*250)
             FixationDurationMean.extend([fixation_duration_mean]*TIME_INTERVAL_DURATION*250)
             FixationDurationStd.extend([fixation_duration_std]*TIME_INTERVAL_DURATION*250)
             FixationDurationMedian.extend([fixation_duration_median]*TIME_INTERVAL_DURATION*250)
@@ -204,6 +207,8 @@ for atco in filenames:
         df['SaccadesDurationMin'] = SaccadesDurationMin
         df['SaccadesDurationMax'] = SaccadesDurationMax
         
+        df['FixationNumber'] = SaccadesNumber
+        df['FixationTotalDuration'] = SaccadesTotalDuration
         df['FixationDurationMean'] = FixationDurationMean
         df['FixationDurationStd'] = FixationDurationStd
         df['FixationDurationMedian'] = FixationDurationMedian

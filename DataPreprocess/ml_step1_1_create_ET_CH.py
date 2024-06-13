@@ -13,9 +13,10 @@ ML_DIR = os.path.join(DATA_DIR, "MLInput")
 
 WINDOW_SIZE = 250 * 180
 
-features = ['SaccadesNumber', 'SaccadesTotalDuration',
+features = ['SaccadesNumber', 'SaccadesTotalDuration', 
             'SaccadesDurationMean', 'SaccadesDurationStd', 'SaccadesDurationMedian',
             'SaccadesDurationMin', 'SaccadesDurationMax',
+            'FixationNumber', 'FixationTotalDuration',
             'FixationDurationMean', 'FixationDurationStd', 'FixationDurationMedian',
             'FixationDurationMin', 'FixationDurationMax',
             'LeftPupilDiameter', 'RightPupilDiameter',
@@ -108,7 +109,7 @@ def get_TS_np(features):
 
 (TS_np, scores) = get_TS_np(features)
 
-print(TS_np.shape) # (667, 45000, 25)
+print(TS_np.shape) # (667, 45000, 27)
 print(len(scores))
 
 # Reshape the 3D array to 2D
