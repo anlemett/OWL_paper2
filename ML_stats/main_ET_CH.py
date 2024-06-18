@@ -71,6 +71,14 @@ def main():
     
     data_df = data_df.drop('ATCO', axis=1)
     
+    selected_featuers = ['Right Blink Closing Amplitude Max',
+                         'Saccades Duration Std',
+                         'FixationNumber',
+                         'Left Pupil Diameter Mean',
+                         'Right Pupil Diameter Mean']
+    
+    data_df = data_df[selected_featuers]
+    
     
     features_np = data_df.to_numpy()
 

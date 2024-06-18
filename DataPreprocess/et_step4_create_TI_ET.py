@@ -199,6 +199,14 @@ for atco in filenames:
             FixationDurationMin.extend([fixation_duration_min]*TIME_INTERVAL_DURATION*250)
             FixationDurationMax.extend([fixation_duration_max]*TIME_INTERVAL_DURATION*250)
         
+        df['FixationNumber'] = FixationNumber
+        df['FixationTotalDuration'] = FixationTotalDuration
+        df['FixationDurationMean'] = FixationDurationMean
+        df['FixationDurationStd'] = FixationDurationStd
+        df['FixationDurationMedian'] = FixationDurationMedian
+        df['FixationDurationMin'] = FixationDurationMin
+        df['FixationDurationMax'] = FixationDurationMax
+        
         df['SaccadesNumber'] = SaccadesNumber
         df['SaccadesTotalDuration'] = SaccadesTotalDuration
         df['SaccadesDurationMean'] = SaccadesDurationMean
@@ -206,14 +214,6 @@ for atco in filenames:
         df['SaccadesDurationMedian'] = SaccadesDurationMedian
         df['SaccadesDurationMin'] = SaccadesDurationMin
         df['SaccadesDurationMax'] = SaccadesDurationMax
-        
-        df['FixationNumber'] = SaccadesNumber
-        df['FixationTotalDuration'] = SaccadesTotalDuration
-        df['FixationDurationMean'] = FixationDurationMean
-        df['FixationDurationStd'] = FixationDurationStd
-        df['FixationDurationMedian'] = FixationDurationMedian
-        df['FixationDurationMin'] = FixationDurationMin
-        df['FixationDurationMax'] = FixationDurationMax
         
         df = df.drop('Saccade', axis=1)
         df = df.drop('Fixation', axis=1)

@@ -28,7 +28,7 @@ if not os.path.exists(FIG_DIR):
 
 RANDOM_STATE = 0
 
-BINARY = True
+BINARY = False
 EQUAL_PERCENTILES = False
 
 PLOT = False
@@ -161,17 +161,12 @@ def main():
     
     data_df = data_df.drop('ATCO', axis=1)
     
-    dcf = DropCorrelatedFeatures(threshold=0.9999)
-    data_df = dcf.fit_transform(data_df)
-    
-    print(len(data_df.columns))
-    #print(data_df.columns)
-    
     # binary
+    '''
     selected_features = ['Left Pupil Diameter Mean',
                          'Head Heading Mean',
                          'Head Pitch Mean']
-    
+    '''
     # 3 classes
     '''
     selected_features = ['Left Pupil Diameter Median',
@@ -180,7 +175,31 @@ def main():
                          'Head Pitch Median',
                          'Head Roll Median']
     '''
+    #data_df = data_df[selected_features]
+    
+    head_features = [
+        'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
+        'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
+        'Head Heading Median', 'Head Pitch Median', 'Head Roll Median',
+        'Head Heading Min', 'Head Pitch Min', 'Head Roll Min',
+        'Head Heading Max', 'Head Pitch Max', 'Head Roll Max']
+    
+    for feature in head_features:
+        data_df = data_df.drop(columns=[feature])
+    
+    
+    dcf = DropCorrelatedFeatures(threshold=0.9999)
+    data_df = dcf.fit_transform(data_df)
+    '''
+    selected_features = ['Left Blink Closing Amplitude Mean',
+                         'Saccades Duration Std',
+                         'Right Blink Closing Amplitude Max',
+                         'Right Pupil Diameter Mean',
+                         'Left Pupil Diameter Mean']
     data_df = data_df[selected_features]
+    '''
+    print(len(data_df.columns))
+    #print(data_df.columns)
     
 
     full_filename = os.path.join(ML_DIR, "ML_ET_EEG_" + str(TIME_INTERVAL_DURATION) + "__EEG.csv")
@@ -309,7 +328,7 @@ def main():
 
     
     # Perform RFE with Permutation Importance
-    rfe = RFEPermutationImportance(best_clf, min_features_to_select=59, n_repeats=5)
+    rfe = RFEPermutationImportance(best_clf, min_features_to_select=1, n_repeats=5)
 
     rfe.fit(X_train, y_train, X_test, y_test)
     
@@ -353,6 +372,18 @@ def main():
     print(test_accuracies)
     print(test_f1_scores)
     #print(f1_num_features_list)
+    
+    max_acc = max(test_accuracies)
+    max_index = test_accuracies.index(max_acc)
+    number_of_features = max_index + 1
+    max_index_f1 = test_f1_scores[max_index]
+    print(f"Maximum accuracy: {max_acc}, Number of features: {number_of_features}, F1-score: {max_index_f1}")
+
+    max_f1 = max(test_f1_scores)
+    max_index = test_f1_scores.index(max_f1)
+    number_of_features = max_index + 1
+    max_index_acc = test_accuracies[max_index]
+    print(f"Maximum F1-score: {max_f1}, Number of features: {number_of_features}, Accuracy: {max_index_acc}")
         
     
     if PLOT:

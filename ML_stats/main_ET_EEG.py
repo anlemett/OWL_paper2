@@ -89,6 +89,28 @@ def main():
     data_df = pd.read_csv(full_filename, sep=' ')
     data_df = data_df.drop('ATCO', axis=1)
     
+    print(len(data_df.columns))
+    '''
+    head_features = [
+        'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
+        'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
+        'Head Heading Median', 'Head Pitch Median', 'Head Roll Median',
+        'Head Heading Min', 'Head Pitch Min', 'Head Roll Min',
+        'Head Heading Max', 'Head Pitch Max', 'Head Roll Max']
+    
+    for feature in head_features:
+        data_df = data_df.drop(columns=[feature])
+    
+    print(data_df.columns)
+    '''
+    selected_featuers = ['Right Blink Closing Amplitude Max',
+                         'Saccades Duration Std',
+                         'FixationNumber',
+                         'Left Pupil Diameter Mean',
+                         'Right Pupil Diameter Mean']
+    
+    data_df = data_df[selected_featuers]
+
 
     full_filename = os.path.join(ML_DIR, "ML_ET_EEG_" + str(TIME_INTERVAL_DURATION) + "__EEG.csv")
 

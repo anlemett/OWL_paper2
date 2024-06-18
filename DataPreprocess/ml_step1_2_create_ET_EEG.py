@@ -18,12 +18,12 @@ ML_DIR = os.path.join(DATA_DIR, "MLInput")
 TIME_INTERVAL_DURATION = 60
 WINDOW_SIZE = 250 * TIME_INTERVAL_DURATION
 
-features = ['SaccadesNumber', 'SaccadesTotalDuration',
-            'SaccadesDurationMean', 'SaccadesDurationStd', 'SaccadesDurationMedian',
-            'SaccadesDurationMin', 'SaccadesDurationMax',
-            'FixationNumber', 'FixationTotalDuration',
+features = ['FixationNumber', 'FixationTotalDuration',
             'FixationDurationMean', 'FixationDurationStd', 'FixationDurationMedian',
             'FixationDurationMin', 'FixationDurationMax',
+            'SaccadesNumber', 'SaccadesTotalDuration',
+            'SaccadesDurationMean', 'SaccadesDurationStd', 'SaccadesDurationMedian',
+            'SaccadesDurationMin', 'SaccadesDurationMax',
             'LeftPupilDiameter', 'RightPupilDiameter',
             'LeftBlinkClosingAmplitude', 'LeftBlinkOpeningAmplitude',
             'LeftBlinkClosingSpeed', 'LeftBlinkOpeningSpeed',
