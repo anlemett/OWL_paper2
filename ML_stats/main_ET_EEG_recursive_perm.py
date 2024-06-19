@@ -28,7 +28,7 @@ if not os.path.exists(FIG_DIR):
 
 RANDOM_STATE = 0
 
-BINARY = False
+BINARY = True
 EQUAL_PERCENTILES = False
 
 PLOT = False
@@ -36,7 +36,6 @@ PLOT = False
 
 if BINARY == True:
     MODEL = "RF"
-
 else:
     MODEL = "HGBC"
 
@@ -168,14 +167,15 @@ def main():
                          'Head Pitch Mean']
     '''
     # 3 classes
-    '''
-    selected_features = ['Left Pupil Diameter Median',
-                         'Right Pupil Diameter Median',
-                         'Head Pitch Max',
-                         'Head Pitch Median',
-                         'Head Roll Median']
-    '''
-    #data_df = data_df[selected_features]
+    
+    print(data_df.columns)
+    fixation_features = [
+        'Fixation Number', 'Fixation Total Duration']
+    
+    for feature in fixation_features:
+        data_df = data_df.drop(columns=[feature])
+    
+    print(len(data_df.columns))
     
     head_features = [
         'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
@@ -187,8 +187,8 @@ def main():
     for feature in head_features:
         data_df = data_df.drop(columns=[feature])
     
-    
-    dcf = DropCorrelatedFeatures(threshold=0.9999)
+    print(len(data_df.columns))
+    dcf = DropCorrelatedFeatures(threshold=0.9)
     data_df = dcf.fit_transform(data_df)
     '''
     selected_features = ['Left Blink Closing Amplitude Mean',
@@ -198,6 +198,15 @@ def main():
                          'Left Pupil Diameter Mean']
     data_df = data_df[selected_features]
     '''
+    '''
+    selected_features = ['Left Pupil Diameter Median',
+                         'Right Pupil Diameter Median',
+                         'Head Pitch Max',
+                         'Head Pitch Median',
+                         'Head Roll Median']
+    data_df = data_df[selected_features]
+    '''
+    
     print(len(data_df.columns))
     #print(data_df.columns)
     

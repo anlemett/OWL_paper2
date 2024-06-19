@@ -13,12 +13,13 @@ ML_DIR = os.path.join(DATA_DIR, "MLInput")
 
 WINDOW_SIZE = 250 * 180
 
-features = ['FixationNumber', 'FixationTotalDuration',
-            'FixationDurationMean', 'FixationDurationStd', 'FixationDurationMedian',
-            'FixationDurationMin', 'FixationDurationMax',
+features = [
             'SaccadesNumber', 'SaccadesTotalDuration', 
             'SaccadesDurationMean', 'SaccadesDurationStd', 'SaccadesDurationMedian',
             'SaccadesDurationMin', 'SaccadesDurationMax',
+            'FixationNumber', 'FixationTotalDuration',
+            'FixationDurationMean', 'FixationDurationStd', 'FixationDurationMedian',
+            'FixationDurationMin', 'FixationDurationMax',
             'LeftPupilDiameter', 'RightPupilDiameter',
             'LeftBlinkClosingAmplitude', 'LeftBlinkOpeningAmplitude',
             'LeftBlinkClosingSpeed', 'LeftBlinkOpeningSpeed',

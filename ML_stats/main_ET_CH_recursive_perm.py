@@ -31,7 +31,7 @@ if not os.path.exists(FIG_DIR):
 
 RANDOM_STATE = 0
 
-BINARY = False
+BINARY = True
 
 PLOT = True
 
@@ -141,21 +141,13 @@ def main():
     
     data_df = data_df.drop('ATCO', axis=1)
     
-    # binary
-    '''
-    selected_features = ['Left Pupil Diameter Mean',
-                         'Head Heading Mean',
-                         'Head Pitch Mean']
-    '''
-    # 3 classes
-    '''
-    selected_features = ['Left Pupil Diameter Median',
-                         'Right Pupil Diameter Median',
-                         'Head Pitch Max',
-                         'Head Pitch Median',
-                         'Head Roll Median']
-    '''
-    #data_df = data_df[selected_features]
+    fixation_features = [
+        'Fixation Number', 'Fixation Total Duration']
+    
+    for feature in fixation_features:
+        data_df = data_df.drop(columns=[feature])
+    
+    print(len(data_df.columns))
     
     head_features = [
         'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
@@ -168,7 +160,7 @@ def main():
         data_df = data_df.drop(columns=[feature])
     
     
-    dcf = DropCorrelatedFeatures(threshold=0.9999)
+    dcf = DropCorrelatedFeatures(threshold=0.9)
     data_df = dcf.fit_transform(data_df)
     
     print(len(data_df.columns))

@@ -14,12 +14,12 @@ TIME_INTERVAL_DURATION = 60
 #TIME_INTERVAL_DURATION = 180
 
 saccade_fixation = [
-            'FixationNumber', 'FixationTotalDuration',
-            'Fixation Duration Mean', 'Fixation Duration Std', 'Fixation Duration Median',
-            'Fixation Duration Min', 'Fixation Duration Max',
             'Saccades Number', 'Saccades Total Duration',
             'Saccades Duration Mean', 'Saccades Duration Std', 'Saccades Duration Median',
-            'Saccades Duration Min', 'Saccades Duration Max'
+            'Saccades Duration Min', 'Saccades Duration Max',
+            'Fixation Number', 'Fixation Total Duration',
+            'Fixation Duration Mean', 'Fixation Duration Std', 'Fixation Duration Median',
+            'Fixation Duration Min', 'Fixation Duration Max'
             ]
 
 old_features = [
