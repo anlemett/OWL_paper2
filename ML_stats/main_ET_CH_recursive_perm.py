@@ -33,7 +33,7 @@ RANDOM_STATE = 0
 
 BINARY = True
 
-PLOT = True
+PLOT = False
 
 if BINARY == True:
     MODEL = "SVC"
@@ -141,14 +141,15 @@ def main():
     
     data_df = data_df.drop('ATCO', axis=1)
     
-    fixation_features = [
-        'Fixation Number', 'Fixation Total Duration']
+    print(len(data_df.columns))
     
-    for feature in fixation_features:
+    del_features = ['Fixation Number', 'Fixation Total Duration', 'Saccades Total Duration']
+    
+    for feature in del_features:
         data_df = data_df.drop(columns=[feature])
     
     print(len(data_df.columns))
-    
+    '''
     head_features = [
         'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
         'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
@@ -159,10 +160,11 @@ def main():
     for feature in head_features:
         data_df = data_df.drop(columns=[feature])
     
+    print(len(data_df.columns))
     
     dcf = DropCorrelatedFeatures(threshold=0.9)
     data_df = dcf.fit_transform(data_df)
-    
+    '''
     print(len(data_df.columns))
     #print(data_df.columns)
     
@@ -324,25 +326,10 @@ def main():
     
     print("Accuracy:", accuracy)
     print("Macro F1-score:", f1_macro)
-
-    print(test_accuracies)
-    print(test_f1_scores)
-    
-    max_acc = max(test_accuracies)
-    max_index = test_accuracies.index(max_acc)
-    number_of_features = max_index + 1
-    max_index_f1 = test_f1_scores[max_index]
-    print(f"Maximum accuracy: {max_acc}, Number of features: {number_of_features}, F1-score: {max_index_f1}")
-
-    max_f1 = max(test_f1_scores)
-    max_index = test_f1_scores.index(max_f1)
-    number_of_features = max_index + 1
-    max_index_acc = test_accuracies[max_index]
-    print(f"Maximum F1-score: {max_f1}, Number of features: {number_of_features}, Accuracy: {max_index_acc}")
     
     if PLOT:
     
-        filename = "acc_scoring_ch_"
+        filename = SCORING + "_scoring_ch_"
         if BINARY:
             filename = filename + "binary_"
         else:
@@ -376,6 +363,23 @@ def main():
         full_filename = os.path.join(FIG_DIR, f1_filename)
         plt.savefig(full_filename, dpi=600)
         plt.show()
+
+    test_accuracies.reverse()
+    test_f1_scores.reverse()
+    print(test_accuracies)
+    print(test_f1_scores)
+    
+    max_acc = max(test_accuracies)
+    max_index = test_accuracies.index(max_acc)
+    number_of_features = max_index + 1
+    max_index_f1 = test_f1_scores[max_index]
+    print(f"Maximum accuracy: {max_acc}, Number of features: {number_of_features}, F1-score: {max_index_f1}")
+
+    max_f1 = max(test_f1_scores)
+    max_index = test_f1_scores.index(max_f1)
+    number_of_features = max_index + 1
+    max_index_acc = test_accuracies[max_index]
+    print(f"Maximum F1-score: {max_f1}, Number of features: {number_of_features}, Accuracy: {max_index_acc}")
 
 
 start_time = time.time()

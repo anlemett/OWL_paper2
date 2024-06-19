@@ -90,6 +90,13 @@ def main():
     data_df = data_df.drop('ATCO', axis=1)
     
     print(len(data_df.columns))
+    
+    del_features = ['Fixation Number', 'Fixation Total Duration', 'Saccades Total Duration']
+    
+    for feature in del_features:
+        data_df = data_df.drop(columns=[feature])
+    
+    print(len(data_df.columns))
     '''
     head_features = [
         'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
@@ -103,15 +110,7 @@ def main():
     
     print(data_df.columns)
     '''
-    selected_featuers = ['Right Blink Closing Amplitude Max',
-                         'Saccades Duration Std',
-                         'FixationNumber',
-                         'Left Pupil Diameter Mean',
-                         'Right Pupil Diameter Mean']
     
-    data_df = data_df[selected_featuers]
-
-
     full_filename = os.path.join(ML_DIR, "ML_ET_EEG_" + str(TIME_INTERVAL_DURATION) + "__EEG.csv")
 
     scores_np = np.loadtxt(full_filename, delimiter=" ")
@@ -263,13 +262,20 @@ def main():
         
     elif  MODEL == "RF":
         clf = RandomForestClassifier(class_weight=weight_dict,
-                                     #bootstrap=False,
+                                     #bootstrap=True,
                                      max_features=None,
+                                     #criterion='entropy',
                                      random_state=RANDOM_STATE)
         
         # Use random search to find the best hyperparameters
-        param_dist = {'n_estimators': randint(50,500),
+        
+        param_dist = {
+             'n_estimators': randint(50,500),
              'max_depth': randint(1,79),
+              #'min_samples_split': randint(2, 40),
+              #'min_samples_leaf': randint(1, 40),
+              #'max_features': ['auto', 'sqrt', 'log2', None],
+              #'criterion': ['gini', 'entropy', 'log_loss']
              }
         
         search = RandomizedSearchCV(clf, 
