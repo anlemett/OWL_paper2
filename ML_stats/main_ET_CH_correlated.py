@@ -76,7 +76,7 @@ def main():
     
     init_features = data_df.columns
     
-    dcf = DropCorrelatedFeatures(threshold=0.999)
+    dcf = DropCorrelatedFeatures(threshold=0.9)
     data_df = dcf.fit_transform(data_df)
     
     new_features = data_df.columns

@@ -27,10 +27,10 @@ RANDOM_STATE = 0
 BINARY = True
 EQUAL_PERCENTILES = False
 
-MODEL = "LR"
+#MODEL = "LR"
 #MODEL = "SVC"
 #MODEL = "DT"
-#MODEL = "RF"
+MODEL = "RF"
 #MODEL = "HGBC"
 
 N_ITER = 100
@@ -94,7 +94,7 @@ def main():
     
     init_features = data_df.columns
     
-    dcf = DropCorrelatedFeatures(threshold=0.999)
+    dcf = DropCorrelatedFeatures(threshold=0.9)
     data_df = dcf.fit_transform(data_df)
     
     new_features = data_df.columns

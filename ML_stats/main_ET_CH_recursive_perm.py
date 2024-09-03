@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
 #import sys
 
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
@@ -31,9 +32,9 @@ if not os.path.exists(FIG_DIR):
 
 RANDOM_STATE = 0
 
-BINARY = True
+BINARY = False
 
-PLOT = False
+PLOT = True
 
 if BINARY == True:
     MODEL = "SVC"
@@ -48,6 +49,18 @@ SCORING = 'f1_macro'
 TIME_INTERVAL_DURATION = 180
 
 np.random.seed(RANDOM_STATE)
+
+def find_elbow_point(x, y):
+    # Create a line between the first and last point
+    line = np.array([x, y])
+    point1 = line[:, 0]
+    point2 = line[:, -1]
+
+    # Calculate the distances
+    distances = np.cross(point2-point1, point1-line.T)/np.linalg.norm(point2-point1)
+    elbow_index = np.argmax(np.abs(distances))
+
+    return x[elbow_index]
 
 # Function to calculate permutation importance using sklearn
 def calculate_permutation_importance(model, X_val, y_val, scoring=SCORING, n_repeats=5):
@@ -149,7 +162,7 @@ def main():
         data_df = data_df.drop(columns=[feature])
     
     print(len(data_df.columns))
-    '''
+    
     head_features = [
         'Head Heading Mean', 'Head Pitch Mean', 'Head Roll Mean',
         'Head Heading Std', 'Head Pitch Std', 'Head Roll Std',
@@ -162,9 +175,9 @@ def main():
     
     print(len(data_df.columns))
     
-    dcf = DropCorrelatedFeatures(threshold=0.9)
-    data_df = dcf.fit_transform(data_df)
-    '''
+    #dcf = DropCorrelatedFeatures(threshold=0.9)
+    #data_df = dcf.fit_transform(data_df)
+    
     print(len(data_df.columns))
     #print(data_df.columns)
     
@@ -327,6 +340,32 @@ def main():
     print("Accuracy:", accuracy)
     print("Macro F1-score:", f1_macro)
     
+    test_accuracies.reverse()
+    test_f1_scores.reverse()
+    acc_num_features_list.reverse()
+    f1_num_features_list.reverse()
+    print(test_accuracies)
+    print(test_f1_scores)
+    
+    y = np.array(test_accuracies)
+    y_ = np.array(test_f1_scores)
+    x = np.array(acc_num_features_list)
+    
+    elbow_point = find_elbow_point(x, y)
+    elbow_point_acc = y[elbow_point-1]
+    corr_f1 = y_[elbow_point-1]
+    print(f"The elbow point for accuracy is at {elbow_point} features.")
+    print(f"Accuracy at the elbow point: {elbow_point_acc}")
+    print(f"Corresponding F1-score: {corr_f1}")
+    
+    elbow_point = find_elbow_point(x, y_)
+    elbow_point_f1 = y_[elbow_point-1]
+    corr_acc = y[elbow_point-1]
+    print(f"The elbow point for F1-score is at {elbow_point} features.")
+    print(f"F1-score at the elbow point: {elbow_point_f1}")
+    print(f"Corresponding accuracy: {corr_acc}")
+    
+    
     if PLOT:
     
         filename = SCORING + "_scoring_ch_"
@@ -364,22 +403,22 @@ def main():
         plt.savefig(full_filename, dpi=600)
         plt.show()
 
-    test_accuracies.reverse()
-    test_f1_scores.reverse()
-    print(test_accuracies)
-    print(test_f1_scores)
     
     max_acc = max(test_accuracies)
     max_index = test_accuracies.index(max_acc)
     number_of_features = max_index + 1
-    max_index_f1 = test_f1_scores[max_index]
-    print(f"Maximum accuracy: {max_acc}, Number of features: {number_of_features}, F1-score: {max_index_f1}")
+    f1 = test_f1_scores[max_index]
+    print("Optimal number of features by maximizing Accuracy")
+    print(f"Optimal number of features: {number_of_features}, Accuracy: {max_acc}, F1-score: {f1}")
+
 
     max_f1 = max(test_f1_scores)
     max_index = test_f1_scores.index(max_f1)
     number_of_features = max_index + 1
-    max_index_acc = test_accuracies[max_index]
-    print(f"Maximum F1-score: {max_f1}, Number of features: {number_of_features}, Accuracy: {max_index_acc}")
+    acc = test_accuracies[max_index]
+    print("Optimal number of features by maximizing F1-score")
+    print(f"Optimal number of features: {number_of_features}, Accuracy: {acc}, F1-score: {max_f1}, ")
+
 
 
 start_time = time.time()

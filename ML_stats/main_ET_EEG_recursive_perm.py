@@ -5,6 +5,8 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import csv
+
 #import sys
 
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
@@ -13,7 +15,7 @@ from scipy.stats import randint
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.metrics import accuracy_score, f1_score
 
-from feature_engine.selection import DropCorrelatedFeatures
+#from feature_engine.selection import DropCorrelatedFeatures
 
 from sklearn.base import clone
 from sklearn.inspection import permutation_importance
@@ -28,10 +30,10 @@ if not os.path.exists(FIG_DIR):
 
 RANDOM_STATE = 0
 
-BINARY = True
+BINARY = False
 EQUAL_PERCENTILES = False
 
-PLOT = False
+PLOT = True
 
 
 if BINARY == True:
@@ -48,6 +50,19 @@ SCORING = 'f1_macro'
 TIME_INTERVAL_DURATION = 60
 
 np.random.seed(RANDOM_STATE)
+
+def find_elbow_point(x, y):
+    # Create a line between the first and last point
+    line = np.array([x, y])
+    point1 = line[:, 0]
+    point2 = line[:, -1]
+
+    # Calculate the distances
+    distances = np.cross(point2-point1, point1-line.T)/np.linalg.norm(point2-point1)
+    elbow_index = np.argmax(np.abs(distances))
+
+    #return x[elbow_index]
+    return elbow_index
 
 # Function to calculate permutation importance using sklearn
 def calculate_permutation_importance(model, X_val, y_val, scoring=SCORING, n_repeats=5):
@@ -180,9 +195,11 @@ def main():
         data_df = data_df.drop(columns=[feature])
     
     print(len(data_df.columns))
-    dcf = DropCorrelatedFeatures(threshold=0.9)
-    data_df = dcf.fit_transform(data_df)
     '''
+    
+    #dcf = DropCorrelatedFeatures(threshold=0.9)
+    #data_df = dcf.fit_transform(data_df)
+    
     
     print(len(data_df.columns))
     print(data_df.columns)
@@ -322,7 +339,7 @@ def main():
         acc_num_features_list.append(num_features)
         test_accuracies.append(accuracy)
     
-    # Store accuracies for plotting
+    # Store f1 for plotting
     for num_features, train_f1_score in rfe.f1_scores_:
          f1_num_features_list.append(num_features)
          test_f1_scores.append(train_f1_score)
@@ -354,6 +371,48 @@ def main():
     print("Accuracy:", accuracy)
     print("Macro F1-score:", f1_macro)
     
+    test_accuracies.reverse()
+    test_f1_scores.reverse()
+    acc_num_features_list.reverse()
+    f1_num_features_list.reverse()
+    print(test_accuracies)
+    print(test_f1_scores)
+    
+    y = np.array(test_accuracies)
+    y_ = np.array(test_f1_scores)
+    x = np.array(acc_num_features_list)
+    
+    filename = 'curve_coordinates_acc.csv'
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['x', 'y'])  # Write the header
+        for i in range(len(x)):
+            writer.writerow([x[i], y[i]])
+    
+    filename = 'curve_coordinates_f1.csv'
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['x', 'y'])  # Write the header
+        for i in range(len(x)):
+            writer.writerow([x[i], y_[i]])
+    
+    elbow_point_idx = find_elbow_point(x, y)
+    elbow_point_num = elbow_point_idx + 1
+    elbow_point_acc = y[elbow_point_idx]
+    corr_f1 = y_[elbow_point_idx]
+    print(f"The elbow point for accuracy is at {elbow_point_num} features.")
+    print(f"Accuracy at the elbow point: {elbow_point_acc}")
+    print(f"Corresponding F1-score: {corr_f1}")
+    
+    elbow_point_f1_idx = find_elbow_point(x, y_)
+    elbow_point_f1_num = elbow_point_f1_idx + 1
+    elbow_point_f1 = y_[elbow_point_f1_idx]
+    corr_acc = y[elbow_point_f1_idx]
+    print(f"The elbow point for F1-score is at {elbow_point_f1_num} features.")
+    print(f"F1-score at the elbow point: {elbow_point_f1}")
+    print(f"Corresponding accuracy: {corr_acc}")
+    
+    
     if PLOT:
         filename = SCORING + "_scoring_eeg_"
         if BINARY:
@@ -363,21 +422,23 @@ def main():
         filename = filename + MODEL
         
         # Plot accuracies
-        fig1, ax1 = plt.subplots()
-        ax1.plot(acc_num_features_list, test_accuracies, marker='o')
-        ax1.set_xlabel('Number of Features', fontsize=14)
-        ax1.set_ylabel('Accuracy', fontsize=14)
-        ax1.tick_params(axis='both', which='major', labelsize=12)
-        ax1.tick_params(axis='both', which='minor', labelsize=10)
+        fig0, ax0 = plt.subplots()
+        ax0.plot(x, y, marker='o')
+        
+        ax0.set_xlabel('Number of Features', fontsize=14)
+        ax0.set_ylabel('Accuracy', fontsize=14)
+        ax0.tick_params(axis='both', which='major', labelsize=12)
+        ax0.tick_params(axis='both', which='minor', labelsize=10)
         plt.grid(True)
         acc_filename = filename + "_acc.png"
         full_filename = os.path.join(FIG_DIR, acc_filename)
+        #plt.gca().set_aspect('equal', adjustable='box')
         plt.savefig(full_filename, dpi=600)
         plt.show()
         
         # Plot F1-scores
         fig2, ax2 = plt.subplots()
-        ax2.plot(f1_num_features_list, test_f1_scores, marker='o')
+        ax2.plot(x, y_, marker='o')
         ax2.set_xlabel('Number of Features', fontsize=14)
         ax2.set_ylabel('F1-score', fontsize=14)
         ax2.tick_params(axis='both', which='major', labelsize=12)
@@ -387,23 +448,24 @@ def main():
         full_filename = os.path.join(FIG_DIR, f1_filename)
         plt.savefig(full_filename, dpi=600)
         plt.show()
-
-    test_accuracies.reverse()
-    test_f1_scores.reverse()
-    print(test_accuracies)
-    print(test_f1_scores)
     
     max_acc = max(test_accuracies)
     max_index = test_accuracies.index(max_acc)
+    #print(f"Max_index: {max_index}")
     number_of_features = max_index + 1
-    max_index_f1 = test_f1_scores[max_index]
-    print(f"Maximum accuracy: {max_acc}, Number of features: {number_of_features}, F1-score: {max_index_f1}")
+    acc = test_accuracies[max_index]
+    f1 = test_f1_scores[max_index]
+    print("Optimal number of features by maximizing Accuracy")
+    print(f"Optimal number of features: {number_of_features}, Accuracy: {acc}, F1-score: {f1}")
 
     max_f1 = max(test_f1_scores)
     max_index = test_f1_scores.index(max_f1)
+    #print(f"Max_index: {max_index}")
     number_of_features = max_index + 1
-    max_index_acc = test_accuracies[max_index]
-    print(f"Maximum F1-score: {max_f1}, Number of features: {number_of_features}, Accuracy: {max_index_acc}")
+    acc = test_accuracies[max_index]
+    f1 = test_f1_scores[max_index]
+    print("Optimal number of features by maximizing F1-score")
+    print(f"Optimal number of features: {number_of_features}, Accuracy: {acc}, F1-score: {f1}, ")
 
 
 start_time = time.time()
